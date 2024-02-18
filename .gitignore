@@ -7,3 +7,7 @@ log.txt
 save.json
 testsss.py
 save.yaml
+*.png~
+*/*.png~
+*.kra~
+*/*.kra~
