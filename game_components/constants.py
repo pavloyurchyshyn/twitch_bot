@@ -1,0 +1,10 @@
+from pygame import Color
+
+
+MOVE_SPEED = 100
+FALL_SPEED = 100
+CHAR_SIZE = 80
+JUMP_VELOCITY = 200
+FALLING_RESIST = 0.3
+DEFAULT_BODY_COLOR = Color('grey')
+DEFAULT_EYES_COLOR = Color('black')
