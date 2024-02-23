@@ -22,16 +22,8 @@ from game_components.screen import MAIN_DISPLAY
 from game_components.game import Game
 from game_components.utils import DEFAULT_FONT
 from game_components.user_character import JUMP_VELOCITY, AttrsCons
+from game_components.errors import RedeemError, ProhibitedColor
 from logger import LOGGER
-
-
-class ProhibitedColor(Exception):
-    def __init__(self, color):
-        self.color = color
-
-
-class RedeemError(Exception):
-    pass
 
 
 class RedeemsNames:
