@@ -11,19 +11,6 @@ from game_components.constants import *
 from game_components.sprite_builder import get_cat_sprite, recolor_sprite, RecolorKeys, CAT_IMG_NAME
 
 
-class AttrsCons(enum.Enum):
-    name = 'name'
-    w_size = 'w_size'
-    h_size = 'h_size'
-    position = 'position'
-    move_direction = 'move_direction'
-    speed = 'speed'
-    horizontal_velocity = 'horizontal_velocity'
-    vertical_velocity = 'vertical_velocity'
-    body_color = 'body_color'
-    eyes_color = 'eyes_color'
-
-
 class Character:
     def __init__(self, name: str, position: Tuple[int, int],
                  w_size: int = CHAR_SIZE, h_size: int = CHAR_SIZE,
