@@ -11,3 +11,5 @@ save.yaml
 */*.png~
 *.kra~
 */*.kra~
+*_token.json
+save_backup.yaml
