@@ -12,7 +12,8 @@ from twitchAPI.type import AuthScope, ChatEvent
 from twitchAPI.chat import Chat, EventData, ChatMessage, ChatSub, ChatCommand
 import webbrowser
 
-from game_runner import GameRunner, RedeemError
+from game_runner import get_game_obj
+from game_components.errors import RedeemError
 from redeems import RewardRedeemedObj
 from logger import LOGGER
 
@@ -32,7 +33,7 @@ webbrowser.register('edge', None, webbrowser.BackgroundBrowser(edge_path))
 class FunBot:
 
     def __init__(self):
-        self.game = GameRunner()
+        self.game = None
         self.twitch: Twitch = None
         self.bot_twitch: Twitch = None
         self.chat: Chat = None
@@ -44,6 +45,7 @@ class FunBot:
     async def run(self):
         try:
             await self.init()
+            self.game = get_game_obj()
             self.game.game.load()
             if self.game.game.get_character(TARGET_CHANNEL) is None:
                 self.game.game.add_character(TARGET_CHANNEL)
@@ -90,7 +92,6 @@ class FunBot:
         self.bot_twitch = bot_twitch
 
         self.pubsub = pubsub = PubSub(twitch)
-
         pub_uuid = await pubsub.listen_channel_points(self.channel_owner_user.id, self.redeem_event)
         self.listen_channel_points_uuid = pub_uuid
         pubsub.start()

@@ -30,8 +30,8 @@ class Game:
                                           )
 
     def save(self):
+        save = {'avatars_data': {}}
         try:
-            save = {'avatars_data': {}}
             for char in self.characters.values():
                 save['avatars_data'][char.name] = char.get_dict()
 
