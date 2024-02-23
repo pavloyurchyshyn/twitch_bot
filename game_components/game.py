@@ -8,6 +8,7 @@ from game_components.user_character import Character, CHAR_SIZE
 from game_components.screen import MAIN_DISPLAY
 
 SAVE_FILE_NAME = 'save.yaml'
+SAVE_FILE_BACKUP_NAME = 'save_backup.yaml'
 
 
 class Game:
@@ -29,14 +30,27 @@ class Game:
                                           )
 
     def save(self):
-        save = {'avatars_data': {}}
-        for char in self.characters.values():
-            save['avatars_data'][char.name] = char.get_dict()
+        try:
+            save = {'avatars_data': {}}
+            for char in self.characters.values():
+                save['avatars_data'][char.name] = char.get_dict()
 
-        with open(SAVE_FILE_NAME, 'w') as f:
-            yaml.safe_dump(save, f, sort_keys=False)
+            with open(SAVE_FILE_NAME, 'w') as f:
+                yaml.safe_dump(save, f, sort_keys=False)
 
-        LOGGER.info(f'Updated save {SAVE_FILE_NAME}')
+            LOGGER.info(f'Updated save {SAVE_FILE_NAME}')
+        except Exception as e:
+            LOGGER.error(f'Failed to save {save}, {e}')
+        else:
+            try:
+                with open(SAVE_FILE_NAME) as f:
+                    data = f.read()
+                with open(SAVE_FILE_BACKUP_NAME, 'w') as f:
+                    f.write(data)
+            except Exception as e:
+                LOGGER.warning(f'Failed to rewrite {SAVE_FILE_BACKUP_NAME} from {SAVE_FILE_NAME} {e}')
+            else:
+                LOGGER.info(f'Rewrote {SAVE_FILE_BACKUP_NAME}')
 
     def load(self):
         if pathlib.Path(SAVE_FILE_NAME).exists():
