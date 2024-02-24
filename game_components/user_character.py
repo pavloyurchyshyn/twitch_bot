@@ -8,7 +8,7 @@ import random
 from game_components.utils import DEFAULT_BACK_FONT
 from game_components.screen import MAIN_DISPLAY
 from game_components.constants import *
-from game_components.sprite_builder import get_cat_sprite, recolor_sprite, RecolorKeys, CAT_IMG_NAME
+from game_components.sprite_builder import get_cat_sprite, recolor_sprite, RecolorKeys, SPRITE_IMG_NAME
 
 
 class Character:
@@ -39,7 +39,7 @@ class Character:
         self.render_name_surface()
 
     def render_surface(self):
-        self.surface = get_cat_sprite(path=CAT_IMG_NAME, size=self.size)
+        self.surface = get_cat_sprite(path=SPRITE_IMG_NAME, size=self.size)
         self.surface = recolor_sprite(sprite=self.surface,
                                       color_key=RecolorKeys.BODY_COLOR_KEY,
                                       new_color=self.body_color)

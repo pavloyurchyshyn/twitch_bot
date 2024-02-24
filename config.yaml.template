@@ -1,0 +1,27 @@
+creds:
+  app_id:
+  app_secret:
+  target_channel:
+  bot_channel:
+  bot_browser_path:
+  bot_browser_name:
+
+characters:
+  size: [80, 80]
+
+redeems:
+  - title:
+    prompt: None
+    cost: 1
+
+    is_enabled: True
+    background_color: None
+    is_user_input_required: False
+    is_max_per_stream_enabled: False,
+    max_per_stream: None,
+    is_max_per_user_per_stream_enabled: False
+    max_per_user_per_stream: None
+    is_global_cooldown_enabled: False
+
+    global_cooldown_seconds: None
+    should_redemptions_skip_request_queue: False
