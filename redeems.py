@@ -9,6 +9,8 @@ class RewardRedeemedObj:
         self.name: str = redemption['reward']['title'].lower()
         self.input: str = redemption.get('user_input')
         self.user_name: str = redemption['user']['display_name']
+        self.user_id: str = redemption['user']['id']
         self.id = redemption['id']
         self.reward_id = redemption['reward']['id']
+        self.channel_id: str = redemption['reward']['channel_id']
         self.skip_queue: bool = redemption['reward']['should_redemptions_skip_request_queue']

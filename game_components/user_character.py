@@ -61,7 +61,7 @@ class Character:
     def draw(self, time: float):
         position = Vector2(self.position)
         if self.horizontal_velocity != 0:
-            dy = sin(time * 5 + self.move_anim_deviation) * self.h_size * 0.05
+            dy = sin(time * 8 + self.move_anim_deviation) * self.h_size * 0.05
             position.y += dy
         else:
             dy = 0

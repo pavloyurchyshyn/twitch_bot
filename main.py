@@ -34,7 +34,7 @@ class FunBot:
 
     def __init__(self):
         self.game = None
-        self.twitch: Twitch = None
+        self.channel_twitch: Twitch = None
         self.bot_twitch: Twitch = None
         self.chat: Chat = None
         self.channel_owner_user: TwitchUser = None
@@ -47,6 +47,8 @@ class FunBot:
             await self.init()
             self.game = get_game_obj()
             self.game.game.load()
+            # await self.set_up_rewards() TODO
+
             if self.game.game.get_character(TARGET_CHANNEL) is None:
                 self.game.game.add_character(TARGET_CHANNEL)
             self.game.run()
@@ -66,16 +68,26 @@ class FunBot:
                 finally:
                     pass
 
-            try:
-                await self.twitch.close()
-            finally:
-                pass
+            if self.channel_twitch:
+                try:
+                    await self.channel_twitch.close()
+                finally:
+                    pass
+
+            if self.bot_twitch:
+                try:
+                    await self.bot_twitch.close()
+                finally:
+                    pass
 
     async def init(self):
+        # INIT USER
         twitch = await Twitch(APP_ID, APP_SECRET)
         auth_helper = UserAuthenticationStorageHelper(twitch, USER_SCOPE)
         await auth_helper.bind()
+        self.channel_twitch = twitch
 
+        # collect required users objects
         async for user in twitch.get_users(logins=[TARGET_CHANNEL, BOT_CHANNEL]):
             if user.login == TARGET_CHANNEL:
                 self.channel_owner_user = user
@@ -84,19 +96,37 @@ class FunBot:
             if self.bot_user and self.channel_owner_user:
                 break
 
+        # INIT BOT
         bot_twitch = await Twitch(APP_ID, APP_SECRET)
         bot_auth = UserAuthenticator(bot_twitch, BOT_SCOPE)
         bot_token, bot_refresh_token = await bot_auth.authenticate(browser_name='edge')
         await bot_twitch.set_user_authentication(bot_token, BOT_SCOPE, bot_refresh_token)
-        self.twitch = twitch
         self.bot_twitch = bot_twitch
 
-        self.pubsub = pubsub = PubSub(twitch)
-        pub_uuid = await pubsub.listen_channel_points(self.channel_owner_user.id, self.redeem_event)
+        await self.subscribe_to_redemptions()
+        await self.connect_co_chat()
+
+    async def set_up_rewards(self):
+
+        # twitch.delete_custom_reward()
+        twitch = self.channel_twitch
+        rewards = await twitch.get_custom_reward(self.broadcaster_id, only_manageable_rewards=True)
+        await twitch.create_custom_reward(broadcaster_id=self.broadcaster_id,
+                                          title='TEST',
+                                          cost=5,
+                                          prompt='TEST MESSAGE'
+                                          )
+
+    async def subscribe_to_redemptions(self):
+        # LISTEN TO EVENTS
+        self.pubsub = pubsub = PubSub(self.channel_twitch)
+        pub_uuid = await pubsub.listen_channel_points(self.channel_owner_user.id, self.process_redeem_event)
         self.listen_channel_points_uuid = pub_uuid
         pubsub.start()
 
-        self.chat = chat = await Chat(bot_twitch)
+    async def connect_co_chat(self):
+        # READ CHAT
+        self.chat = chat = await Chat(self.bot_twitch)
         chat.register_event(ChatEvent.READY, self.ready_event)
         chat.register_command('стоп_бот', self.stop_bot_command)
         chat.start()
@@ -115,8 +145,9 @@ class FunBot:
         else:
             await cmd.send(f'@{cmd.user.name}, в тебе немає влади! iamvol3U ')
 
-    async def redeem_event(self, redeem_uuid, request_payload):
+    async def process_redeem_event(self, _, request_payload):
         redeem_obj = RewardRedeemedObj(request_payload)
+        fulfilled = False
         try:
             self.game.process_redeem(redeem_obj)
         except RedeemError as e:
@@ -125,17 +156,22 @@ class FunBot:
             await self.chat.send_message(TARGET_CHANNEL, text)
         except Exception as e:
             LOGGER.warning(e)
-        # else:
-        #    TODO spend points
-        finally:
-            # TODO return channel points
-            pass
-            # if not redeem_obj.skip_queue:
-            #     await self.twitch.update_redemption_status(self.broadcaster_id,
-            #                                                redeem_obj.reward_id,
-            #                                                redeem_obj.id,
-            #                                                RedeemStatus.FULFILLED if ok else RedeemStatus.CANCELED,
-            #                                                )
+        else:
+            fulfilled = True
+
+        # TODO return channel points
+        if not redeem_obj.skip_queue:
+            status = RedeemStatus.FULFILLED if fulfilled else RedeemStatus.CANCELED
+
+            try:
+                await self.channel_twitch.update_redemption_status(broadcaster_id=self.broadcaster_id,
+                                                                   reward_id=redeem_obj.reward_id,
+                                                                   redemption_ids=redeem_obj.id,
+                                                                   status=status,
+                                                                   )
+                LOGGER.info(f'Redemption {redeem_obj.id} status is {status}')
+            except Exception as e:
+                LOGGER.error(str(e))
 
     @property
     def program_works(self) -> bool:
