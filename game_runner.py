@@ -98,7 +98,7 @@ def get_game_obj() -> 'GameRunner':
             if redeem.name in RedeemsNames.commands_to_ignore:
                 return
             elif process_func is None:
-                raise RedeemError(f'{redeem.name} поки ще не зроблено.')
+                raise NotImplementedError(f'{redeem.name} поки ще не зроблено.')
             else:
                 process_func(redeem=redeem)
 
