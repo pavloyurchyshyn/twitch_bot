@@ -13,3 +13,4 @@ save.yaml
 */*.kra~
 *_token.json
 save_backup.yaml
+config.yaml
