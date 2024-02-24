@@ -1,11 +1,13 @@
 import asyncio
 import os
+from typing import Dict, List
+
 os.environ['VisualPygameOn'] = 'on'
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 import datetime
 from twitchAPI.type import CustomRewardRedemptionStatus as RedeemStatus
 from twitchAPI.twitch import Twitch
-from twitchAPI.object.api import TwitchUser
+from twitchAPI.object.api import TwitchUser, CustomReward
 from twitchAPI.pubsub import PubSub
 from twitchAPI.oauth import UserAuthenticator, UserAuthenticationStorageHelper
 from twitchAPI.type import AuthScope, ChatEvent
@@ -14,26 +16,35 @@ import webbrowser
 
 from game_runner import get_game_obj
 from game_components.errors import RedeemError
+from global_data import Config
 from redeems import RewardRedeemedObj
 from logger import LOGGER
 
-APP_ID = os.getenv('TWITCH_APP_ID')
-APP_SECRET = os.getenv('TWITCH_APP_SECRET')
-TARGET_CHANNEL = os.getenv('TWITCH_TARGET_CHANNEL')
-BOT_CHANNEL = os.getenv('TWITCH_BOT_CHANNEL')
+CONFIG = Config()
+CONFIG.load_config()
+
+APP_ID = os.getenv('TWITCH_APP_ID', CONFIG.creds.app_id)
+APP_SECRET = os.getenv('TWITCH_APP_SECRET', CONFIG.creds.app_secret)
+TARGET_CHANNEL = os.getenv('TWITCH_TARGET_CHANNEL', CONFIG.creds.target_channel)
+BOT_CHANNEL = os.getenv('TWITCH_BOT_CHANNEL', CONFIG.creds.bot_channel)
+# TODO add message
 USER_SCOPE = [AuthScope.CHANNEL_READ_REDEMPTIONS,
               AuthScope.CHANNEL_MANAGE_REDEMPTIONS,
               ]
 BOT_SCOPE = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT]
 
-edge_path = r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
-webbrowser.register('edge', None, webbrowser.BackgroundBrowser(edge_path))
+BOT_BROWSER_PATH = CONFIG.get('bot_browser_path')
+if BOT_BROWSER_PATH is None:
+    BOT_BROWSER_PATH = r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
+BOT_BROWSER_NAME = 'twitch_bot_browser'
+
+webbrowser.register(BOT_BROWSER_NAME, None, webbrowser.BackgroundBrowser(BOT_BROWSER_PATH))
 
 
 class FunBot:
 
     def __init__(self):
-        self.game = None
+        self.game_runner = None
         self.channel_twitch: Twitch = None
         self.bot_twitch: Twitch = None
         self.chat: Chat = None
@@ -45,15 +56,16 @@ class FunBot:
     async def run(self):
         try:
             await self.init()
-            self.game = get_game_obj()
-            self.game.game.load()
-            # await self.set_up_rewards() TODO
+            self.game_runner = get_game_obj()
+            self.game_runner.game.load()
+            await self.set_up_rewards()
 
-            if self.game.game.get_character(TARGET_CHANNEL) is None:
-                self.game.game.add_character(TARGET_CHANNEL)
-            self.game.run()
+            if self.game_runner.game.get_character(TARGET_CHANNEL) is None:
+                self.game_runner.game.add_character(TARGET_CHANNEL)
+            self.game_runner.run()
         except Exception as e:
             LOGGER.warning(e)
+            print(e)
             await self.chat.send_message(TARGET_CHANNEL, 'Бот впав BibleThump')
         finally:
             if self.chat:
@@ -99,7 +111,7 @@ class FunBot:
         # INIT BOT
         bot_twitch = await Twitch(APP_ID, APP_SECRET)
         bot_auth = UserAuthenticator(bot_twitch, BOT_SCOPE)
-        bot_token, bot_refresh_token = await bot_auth.authenticate(browser_name='edge')
+        bot_token, bot_refresh_token = await bot_auth.authenticate(browser_name=BOT_BROWSER_NAME)
         await bot_twitch.set_user_authentication(bot_token, BOT_SCOPE, bot_refresh_token)
         self.bot_twitch = bot_twitch
 
@@ -107,15 +119,52 @@ class FunBot:
         await self.connect_co_chat()
 
     async def set_up_rewards(self):
+        title_key = 'title'
+        base_settings = {
+            'title': 'стрибок',
+            'prompt': None,
+            'cost': 1,
 
-        # twitch.delete_custom_reward()
+            'is_enabled': True,
+            'background_color': None,
+            'is_user_input_required': False,
+            'is_max_per_stream_enabled': False,
+            'max_per_stream': None,
+            'is_max_per_user_per_stream_enabled': False,
+            'max_per_user_per_stream': None,
+            'is_global_cooldown_enabled': False,
+
+            'global_cooldown_seconds': None,
+            'should_redemptions_skip_request_queue': False,
+        }
+
         twitch = self.channel_twitch
-        rewards = await twitch.get_custom_reward(self.broadcaster_id, only_manageable_rewards=True)
-        await twitch.create_custom_reward(broadcaster_id=self.broadcaster_id,
-                                          title='TEST',
-                                          cost=5,
-                                          prompt='TEST MESSAGE'
-                                          )
+        manageable_existing_rewards: List[CustomReward] = await twitch.get_custom_reward(self.broadcaster_id,
+                                                                                         only_manageable_rewards=True)
+        manageable_existing_rewards: Dict[str, CustomReward] = {r.title: r for r in manageable_existing_rewards}
+
+        all_rewards: List[CustomReward] = await twitch.get_custom_reward(self.broadcaster_id)
+        all_rewards: List[str] = [r.title for r in all_rewards if r.title not in manageable_existing_rewards]
+        rewards_config = {r.title: r for r in CONFIG.redeems if r.title is not None}
+
+        for redeem_name in self.game_runner.redeem_processors.keys():
+            if redeem_name in manageable_existing_rewards:  # recreate
+                await self.delete_reward(reward_id=manageable_existing_rewards.pop(redeem_name).id)
+
+            if redeem_name not in manageable_existing_rewards and redeem_name not in all_rewards:
+                data = base_settings.copy()
+                data[title_key] = redeem_name
+                data.update(rewards_config.get(redeem_name, {}))
+                await self.create_reward(**data)
+            else:
+                # TODO make comparison
+                pass
+
+    async def create_reward(self, **kwargs):
+        await self.channel_twitch.create_custom_reward(broadcaster_id=self.broadcaster_id, **kwargs)
+
+    async def delete_reward(self, reward_id: str):
+        await self.channel_twitch.delete_custom_reward(broadcaster_id=self.broadcaster_id, reward_id=reward_id)
 
     async def subscribe_to_redemptions(self):
         # LISTEN TO EVENTS
@@ -134,13 +183,12 @@ class FunBot:
     @staticmethod
     async def ready_event(ready_event: EventData):
         await ready_event.chat.join_room(TARGET_CHANNEL)
-        time_str = datetime.datetime.now().strftime("%H:%M")
-        await ready_event.chat.send_message(TARGET_CHANNEL,
-                                            text=f'Бот запрацював о {time_str} iamvol3Good')
+        # time_str = datetime.datetime.now().strftime("%H:%M")
+        # await ready_event.chat.send_message(TARGET_CHANNEL, text=f'Бот запрацював о {time_str} iamvol3Good')
 
     async def stop_bot_command(self, cmd: ChatCommand):
         if cmd.user.name == TARGET_CHANNEL:
-            self.game.is_running = False
+            self.game_runner.is_running = False
             await cmd.send(f'Бот йде ґеть! BibleThump ')
         else:
             await cmd.send(f'@{cmd.user.name}, в тебе немає влади! iamvol3U ')
@@ -149,7 +197,7 @@ class FunBot:
         redeem_obj = RewardRedeemedObj(request_payload)
         fulfilled = False
         try:
-            self.game.process_redeem(redeem_obj)
+            self.game_runner.process_redeem(redeem_obj)
         except RedeemError as e:
             text = f'@{redeem_obj.user_name}, не вийшло застосувати "{redeem_obj.name}", бо {e}'
             LOGGER.warning(text)
@@ -175,7 +223,7 @@ class FunBot:
 
     @property
     def program_works(self) -> bool:
-        return self.game.is_running == 1
+        return self.game_runner.is_running == 1
 
     @property
     def broadcaster_id(self) -> str:
@@ -185,7 +233,7 @@ class FunBot:
 def main():
     bot = FunBot()
     asyncio.run(bot.run())
-    bot.game.game.save()
+    bot.game_runner.game.save()
 
 
 if __name__ == '__main__':
