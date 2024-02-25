@@ -1,3 +1,17 @@
+class RedeemsNames:
+    spawn = "з'явитись"
+    jump = "стрибок"
+    recolor_body = "перефарбувати тіло"
+    recolor_eyes = "перефарбувати очі"
+    set_direction = "змінити напрям"
+    every_body_jump = "всім іншим підстрибнути"
+    start_storm = "запустити шторм"
+    commands_to_ignore = [
+        "замовити музику",
+
+    ]
+
+
 def get_game_obj() -> 'GameRunner':
     from os import environ
     import re
@@ -27,19 +41,11 @@ def get_game_obj() -> 'GameRunner':
     from game_components.errors import RedeemError, ProhibitedColor
     from logger import LOGGER
 
-    class RedeemsNames:
-        spawn = "з'явитись"
-        jump = "стрибок"
-        recolor_body = "перефарбувати тіло"
-        recolor_eyes = "перефарбувати очі"
-        set_direction = "змінити напрям"
-        every_body_jump = "всім іншим підстрибнути"
-        start_storm = "запустити шторм"
-        commands_to_ignore = [
-            "замовити музику",
+    ONLINE_TEXT = DEFAULT_FONT.render('Бот працює', 1, [255, 255, 255])
+    ONLINE_TEXT_POS = list(MAIN_DISPLAY.get_rect().midbottom)
+    ONLINE_TEXT_POS[1] -= ONLINE_TEXT.get_height() - 2
 
-        ]
-
+    
     class GameRunner:
         FPS = 60
 
@@ -85,8 +91,13 @@ def get_game_obj() -> 'GameRunner':
                 self.game.update(dt=delta_time)
 
                 self.draw_fps(pygame_clock.get_fps())
+                self.draw_bot_online()
 
                 display.update()
+
+        @staticmethod
+        def draw_bot_online():
+            MAIN_DISPLAY.blit(ONLINE_TEXT, ONLINE_TEXT_POS)
 
         @staticmethod
         def draw_fps(fps):
@@ -165,4 +176,5 @@ def get_game_obj() -> 'GameRunner':
 
 if __name__ == '__main__':
     g = get_game_obj()
+    g.game.add_character('Dummy')
     g.run()
