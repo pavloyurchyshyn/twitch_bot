@@ -1,45 +1,57 @@
+import os
+
 import yaml
 
+from logger import LOGGER
 CONFIG_PATH = 'config.yaml'
 
 
-class SingletonMeta(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            instance = super().__call__(*args, **kwargs)
-            cls._instances[cls] = instance
-        return cls._instances[cls]
+def load_yaml_config(file: os.PathLike) -> dict:
+    with open(file, encoding='utf-8') as f:
+        data = yaml.safe_load(f)
+        LOGGER.info(f'Loaded {file} config')
+        return data
 
 
-class Config(dict, metaclass=SingletonMeta):
-    file = CONFIG_PATH
+def single_tone_decorator(cls):
+    memory = {}
+
+    def wrapper(**kwargs):
+        if cls.__name__ not in memory:
+            memory[cls.__name__] = cls(**kwargs)
+
+        return memory[cls.__name__]
+
+    return wrapper
+
+
+@single_tone_decorator
+class Config(dict):
+    file: str = CONFIG_PATH
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def load_config(self):
-        with open(self.file) as f:
-            for k, v in yaml.safe_load(f).items():
-                self.set_value(k, v)
+        for k, v in load_yaml_config(self.file).items():
+            self.set_value(k, v)
 
     def set_value(self, k: str, v: str):
-        super().__setitem__(k, self.init_value(v))
+        self[k] = self.init_value(v)
 
     def init_value(self, value):
         if isinstance(value, dict):
-            return self.init_dict(value)
+            return self.__class__(**self.init_dict(value))
         elif isinstance(value, list):
             return [self.init_value(v) for v in value]
         else:
             return value
 
-    def init_dict(self, data: dict) -> 'Config':
-        sub_config = Config()
+    def init_dict(self, data: dict) -> dict:
+        sub_config = {}
         for k, v in data.items():
             if isinstance(v, dict):
-                sub_config[k] = {k_: v_ for k_, v_ in data.items()}
+                sub_config[k] = {k_: self.init_value(v_) for k_, v_ in data.items()}
             else:
                 sub_config[k] = self.init_value(v)
 
@@ -47,3 +59,6 @@ class Config(dict, metaclass=SingletonMeta):
 
     def __getattr__(self, item):
         return self.get(item)
+
+    def __str__(self):
+        return str(self)

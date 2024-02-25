@@ -1,7 +1,6 @@
 import enum
-from typing import Tuple
-from pygame import Vector2
-from pygame import Surface, transform
+from typing import Tuple, List
+from pygame import Surface, transform, Vector2, Rect
 from math import sin
 import random
 
@@ -17,6 +16,7 @@ class Character:
                  speed: float = MOVE_SPEED, move_direction: int = 0,
                  body_color: Color = DEFAULT_BODY_COLOR,
                  eyes_color: Color = DEFAULT_EYES_COLOR,
+                 health_points: float = DEFAULT_HP,
                  horizontal_velocity: float = 0,
                  vertical_velocity: float = 0,
                  **__,
@@ -37,6 +37,10 @@ class Character:
         self.render_surface()
         self.name_surface: Surface = None
         self.render_name_surface()
+        self.health_points: float = health_points
+        self.alive: bool = True
+
+        self.draw_over: List[Surface] = []
 
     def render_surface(self):
         self.surface = get_cat_sprite(path=SPRITE_IMG_NAME, size=self.size)
@@ -70,9 +74,18 @@ class Character:
             MAIN_DISPLAY.blit(transform.flip(self.surface, True, False), position)
         else:
             MAIN_DISPLAY.blit(self.surface, position)
-        name_x = self.position.x - (self.name_surface.get_width() - self.w_size) // 2
-        name_y = self.position.y - self.name_surface.get_height() + dy
-        MAIN_DISPLAY.blit(self.name_surface, (name_x, name_y))
+
+        MAIN_DISPLAY.blit(self.name_surface, self.get_name_position(dy=dy))
+
+    def get_name_position(self, dy: float = 0) -> Tuple[float, float]:
+        x = self.position.x - (self.name_surface.get_width() - self.w_size) // 2
+        y = self.position.y - self.name_surface.get_height() + dy
+        return x, y
+
+    def damage(self, damage: float):
+        self.health_points -= damage
+        if self.health_points < 0:
+            self.alive = False
 
     def move(self, dt: float):
         if self.move_direction or self.horizontal_velocity:
@@ -116,3 +129,13 @@ class Character:
         data[AttrsCons.body_color.value] = tuple(data[AttrsCons.body_color.value])
         data[AttrsCons.eyes_color.value] = tuple(data[AttrsCons.eyes_color.value])
         return data
+
+    def get_rect(self) -> Rect:
+        return Rect(self.position.x, self.position.y, self.w_size, self.h_size)
+
+    def get_center(self) -> Tuple[int, int]:
+        return self.get_rect().center
+
+    @property
+    def dead(self) -> bool:
+        return not self.alive

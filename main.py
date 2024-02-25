@@ -65,12 +65,11 @@ class FunBot:
             self.game_runner.run()
         except Exception as e:
             LOGGER.warning(e)
-            print(e)
-            await self.chat.send_message(TARGET_CHANNEL, 'Бот впав BibleThump')
+            # await self.chat.send_message(TARGET_CHANNEL, 'Бот впав BibleThump')
         finally:
             if self.chat:
                 try:
-                    await self.chat.send_message(TARGET_CHANNEL, "Бот вимкнувся")
+                    # await self.chat.send_message(TARGET_CHANNEL, "Бот вимкнувся")
                     self.chat.stop()
                 finally:
                     pass
@@ -120,8 +119,62 @@ class FunBot:
 
     async def set_up_rewards(self):
         title_key = 'title'
-        base_settings = {
-            'title': 'стрибок',
+
+        twitch = self.channel_twitch
+        manageable_rewards: List[CustomReward] = await twitch.get_custom_reward(self.broadcaster_id,
+                                                                                only_manageable_rewards=True)
+        manageable_rewards: Dict[str, CustomReward] = {r.title: r for r in manageable_rewards}
+
+        all_rewards: List[CustomReward] = await twitch.get_custom_reward(self.broadcaster_id)
+        all_rewards: List[str] = [r.title for r in all_rewards if r.title not in manageable_rewards]
+        rewards_config = {r_data[title_key]: r_data for r_data in CONFIG.custom_rewards if r_data.get(title_key)}
+
+        # delete rewards which are not in config
+        for reward_name in tuple(manageable_rewards.keys()):
+            if reward_name not in self.game_runner.redeem_processors:
+                await self.delete_reward(reward_id=manageable_rewards.pop(reward_name).id)
+
+        for reward_name in self.game_runner.redeem_processors.keys():
+            try:
+                if reward_name in manageable_rewards:
+                    try:
+                        await self.update_reward_if_required(reward=manageable_rewards[reward_name],
+                                                             reward_config=rewards_config.get(reward_name, {}))
+                    except Exception as e:
+                        LOGGER.error(f'Failed to update {reward_name}')
+                        raise e
+
+                elif reward_name in all_rewards:
+                    LOGGER.error(f'Failed to create "{reward_name}" because its already exists in unmanageable rewards')
+
+                else:
+                    try:
+                        await self.create_reward(reward_name=reward_name,
+                                                 rewards_config=rewards_config.get(reward_name, {}))
+                    except Exception as e:
+                        LOGGER.warning(f'Failed to create reward "{reward_name}"')
+                        raise e
+                    else:
+                        LOGGER.info(f'Created reward "{reward_name}"')
+            except Exception as e:
+                LOGGER.error(f'Failed to process "{reward_name}" update/create\n{e}')
+
+    async def update_reward_if_required(self, reward: CustomReward, reward_config: dict):
+        update_dict = {}
+        for k, v in reward_config.items():
+            if hasattr(reward, k) and getattr(reward, k) != v:
+                # TODO not all attrs the same, at least is_max_per_stream_enabled
+                update_dict[k] = v
+
+        if update_dict:
+            await self.channel_twitch.update_custom_reward(broadcaster_id=self.broadcaster_id,
+                                                           reward_id=reward.id,
+                                                           **update_dict)
+            LOGGER.info(f'Updated {reward.title} with {update_dict}')
+
+    async def create_reward(self, reward_name: str, rewards_config: dict):
+        data = {
+            'title': reward_name,
             'prompt': None,
             'cost': 1,
 
@@ -137,31 +190,11 @@ class FunBot:
             'global_cooldown_seconds': None,
             'should_redemptions_skip_request_queue': False,
         }
+        data.update(rewards_config)
+        if not data['title']:
+            raise Exception(f'Can`t create reward without title, {data}')
 
-        twitch = self.channel_twitch
-        manageable_existing_rewards: List[CustomReward] = await twitch.get_custom_reward(self.broadcaster_id,
-                                                                                         only_manageable_rewards=True)
-        manageable_existing_rewards: Dict[str, CustomReward] = {r.title: r for r in manageable_existing_rewards}
-
-        all_rewards: List[CustomReward] = await twitch.get_custom_reward(self.broadcaster_id)
-        all_rewards: List[str] = [r.title for r in all_rewards if r.title not in manageable_existing_rewards]
-        rewards_config = {r.title: r for r in CONFIG.redeems if r.title is not None}
-
-        for redeem_name in self.game_runner.redeem_processors.keys():
-            if redeem_name in manageable_existing_rewards:  # recreate
-                await self.delete_reward(reward_id=manageable_existing_rewards.pop(redeem_name).id)
-
-            if redeem_name not in manageable_existing_rewards and redeem_name not in all_rewards:
-                data = base_settings.copy()
-                data[title_key] = redeem_name
-                data.update(rewards_config.get(redeem_name, {}))
-                await self.create_reward(**data)
-            else:
-                # TODO make comparison
-                pass
-
-    async def create_reward(self, **kwargs):
-        await self.channel_twitch.create_custom_reward(broadcaster_id=self.broadcaster_id, **kwargs)
+        await self.channel_twitch.create_custom_reward(broadcaster_id=self.broadcaster_id, **data)
 
     async def delete_reward(self, reward_id: str):
         await self.channel_twitch.delete_custom_reward(broadcaster_id=self.broadcaster_id, reward_id=reward_id)
@@ -217,7 +250,7 @@ class FunBot:
                                                                    redemption_ids=redeem_obj.id,
                                                                    status=status,
                                                                    )
-                LOGGER.info(f'Redemption {redeem_obj.id} status is {status}')
+                LOGGER.info(f'Redemption {redeem_obj.name} from {redeem_obj.user_name} status is {status}')
             except Exception as e:
                 LOGGER.error(str(e))
 

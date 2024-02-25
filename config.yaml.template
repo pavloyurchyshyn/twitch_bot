@@ -11,17 +11,17 @@ characters:
 
 redeems:
   - title:
-    prompt: None
+    prompt:
     cost: 1
 
     is_enabled: True
-    background_color: None
+    background_color:
     is_user_input_required: False
-    is_max_per_stream_enabled: False,
-    max_per_stream: None,
+    is_max_per_stream_enabled: False
+    max_per_stream:
     is_max_per_user_per_stream_enabled: False
-    max_per_user_per_stream: None
+    max_per_user_per_stream:
     is_global_cooldown_enabled: False
 
-    global_cooldown_seconds: None
+    global_cooldown_seconds:
     should_redemptions_skip_request_queue: False

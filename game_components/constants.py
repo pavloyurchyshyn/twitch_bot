@@ -8,6 +8,7 @@ JUMP_VELOCITY = 200
 FALLING_RESIST = 0.3
 DEFAULT_BODY_COLOR = Color('grey')
 DEFAULT_EYES_COLOR = Color('black')
+DEFAULT_HP = 100
 
 
 class AttrsCons(enum.Enum):
@@ -21,3 +22,4 @@ class AttrsCons(enum.Enum):
     vertical_velocity = 'vertical_velocity'
     body_color = 'body_color'
     eyes_color = 'eyes_color'
+    health_points = 'health_points'

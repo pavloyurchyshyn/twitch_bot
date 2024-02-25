@@ -1,11 +1,13 @@
 import yaml
 import pathlib
 import random
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 
 from logger import LOGGER
 from game_components.user_character import Character, CHAR_SIZE
 from game_components.screen import MAIN_DISPLAY
+from game_components.events.base import BaseEvent
+from game_components.events.storm import StormEvent
 
 SAVE_FILE_NAME = 'save.yaml'
 SAVE_FILE_BACKUP_NAME = 'save_backup.yaml'
@@ -14,12 +16,22 @@ SAVE_FILE_BACKUP_NAME = 'save_backup.yaml'
 class Game:
     def __init__(self):
         self.characters: Dict[str, Character] = {}
+        self.events: List[BaseEvent] = []
         self.time: float = 0
 
     def update(self, dt: float):
         self.time += dt
-        for character in self.characters.values():
+        for character in tuple(self.characters.values()):
             character.update(dt, time=self.time)
+            if character.dead:
+                self.characters.pop(character.name)
+
+        for event in self.events.copy():
+            event.update(dt, time=self.time)
+            event.draw()
+            if event.is_done:
+                self.events.remove(event)
+                LOGGER.info(f'{event.name} is done')
 
     def get_character(self, name: str) -> Optional[Character]:
         return self.characters.get(name)
@@ -61,6 +73,9 @@ class Game:
                 self.characters[char_name] = Character(**char_data)
 
             LOGGER.info(f'Loaded save {SAVE_FILE_NAME}')
+
+    def make_storm(self):
+        self.events.append(StormEvent(list(self.characters.values())))
 
     @staticmethod
     def get_random_spawn_position() -> Tuple[int, int]:

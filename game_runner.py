@@ -7,10 +7,11 @@ def get_game_obj() -> 'GameRunner':
 
     from time import time
     from typing import Dict, Callable
-    from pygame import init
+    from pygame import init, mixer
 
     init()
     import pygame
+    mixer.init()
     from pygame import font
     from pygame import display, event as EVENT
     from pygame.time import Clock
@@ -32,7 +33,8 @@ def get_game_obj() -> 'GameRunner':
         recolor_body = "перефарбувати тіло"
         recolor_eyes = "перефарбувати очі"
         set_direction = "змінити напрям"
-        every_body_jump = "всім підстрибнути"
+        every_body_jump = "всім іншим підстрибнути"
+        start_storm = "запустити шторм"
         commands_to_ignore = [
             "замовити музику",
 
@@ -52,6 +54,7 @@ def get_game_obj() -> 'GameRunner':
                 RedeemsNames.recolor_eyes: self.process_eyes_recolor_redeem,
                 RedeemsNames.set_direction: self.set_direction,
                 RedeemsNames.every_body_jump: self.process_everybody_jump,
+                RedeemsNames.start_storm: self.process_start_storm,
             }
 
         def run(self):
@@ -151,6 +154,9 @@ def get_game_obj() -> 'GameRunner':
             else:
                 character = self.game.get_character(redeem.user_name)
                 character.move_direction = int(direction)
+
+        def process_start_storm(self, redeem: RewardRedeemedObj):
+            self.game.make_storm()
 
     return GameRunner()
 
