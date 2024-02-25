@@ -14,7 +14,7 @@
 - User character:
   - characters fabric
   - nickname border
-  - hp bar
+  - ~~hp bar~~
   - hitbox?
   - hat
   - moustache

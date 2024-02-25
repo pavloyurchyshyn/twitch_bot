@@ -1,7 +1,7 @@
 import yaml
 import pathlib
 import random
-from typing import Dict, Tuple, Optional, List
+from typing import Dict, Tuple, Optional, List, Callable
 
 from logger import LOGGER
 from game_components.AI.base import AI
@@ -20,6 +20,7 @@ class Game:
         self.characters: Dict[str, Character] = {}
         self.characters_AI: Dict[str, AI] = {}
         self.events: List[BaseEvent] = []
+        self.send_msg: Callable = lambda *_, **__: None
         self.time: float = 0
 
     def update(self, dt: float):
@@ -36,6 +37,7 @@ class Game:
                     self.characters_AI.pop(character.name, None)
                     LOGGER.info(f'{character.name} died')
                     self.add_character_ghost(character)
+                    self.send_msg(f'@{character.name} пагіб iamvol3Ogo ') # TODO fix
             except Exception as e:
                 LOGGER.error(f'Failed to update {name}\n{e}')
 

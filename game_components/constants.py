@@ -10,6 +10,11 @@ DEFAULT_BODY_COLOR = Color('grey')
 DEFAULT_EYES_COLOR = Color('black')
 DEFAULT_HP = 100
 
+HP_BAR_W = CHAR_SIZE // 2
+HP_BAR_H = 5
+HP_BAR_COLOR = Color('white')
+HP_BAR_BORDER_COLOR = Color(90, 90, 90)
+
 
 class AttrsCons(enum.Enum):
     name = 'name'

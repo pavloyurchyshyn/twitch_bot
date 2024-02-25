@@ -62,6 +62,8 @@ class FunBot:
 
             if self.game_runner.game.get_character(TARGET_CHANNEL) is None:
                 self.game_runner.game.add_character(TARGET_CHANNEL)
+            # TODO fix
+            self.game_runner.game.send_msg = self.send_message
             self.game_runner.run()
         except Exception as e:
             LOGGER.warning(e)
@@ -213,11 +215,10 @@ class FunBot:
         chat.register_command('стоп_бот', self.stop_bot_command)
         chat.start()
 
-    @staticmethod
-    async def ready_event(ready_event: EventData):
+    async def ready_event(self, ready_event: EventData):
         await ready_event.chat.join_room(TARGET_CHANNEL)
         # time_str = datetime.datetime.now().strftime("%H:%M")
-        # await ready_event.chat.send_message(TARGET_CHANNEL, text=f'Бот запрацював о {time_str} iamvol3Good')
+        # self.send_message(f'Бот запрацював о {time_str} iamvol3Good')
 
     async def stop_bot_command(self, cmd: ChatCommand):
         if cmd.user.name == TARGET_CHANNEL:
@@ -250,9 +251,13 @@ class FunBot:
                                                                    redemption_ids=redeem_obj.id,
                                                                    status=status,
                                                                    )
-                LOGGER.info(f'Redemption {redeem_obj.name} from {redeem_obj.user_name} status is {status}')
+                LOGGER.debug(f'Redemption {redeem_obj.name} from {redeem_obj.user_name} status is {status}')
             except Exception as e:
                 LOGGER.error(str(e))
+
+    def send_message(self, msg: str) -> None:
+        LOGGER.info(f'Send message: {msg}')
+        asyncio.create_task(self.chat.send_message(TARGET_CHANNEL, msg))
 
     @property
     def program_works(self) -> bool:

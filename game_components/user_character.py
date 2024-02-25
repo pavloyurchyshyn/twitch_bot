@@ -1,7 +1,7 @@
 import random
 from math import sin
 from typing import Tuple, List
-from pygame import Surface, transform, Vector2, Rect
+from pygame import Surface, transform, Vector2, Rect, draw
 
 from game_components.utils import DEFAULT_BACK_FONT
 from game_components.screen import MAIN_DISPLAY
@@ -89,7 +89,21 @@ class Character:
         else:
             MAIN_DISPLAY.blit(self.surface, position)
 
-        MAIN_DISPLAY.blit(self.name_surface, self.get_name_position(dy=dy))
+        self.draw_name(dy)
+        self.draw_hp_bar(dy)
+
+    def draw_name(self, dy: int):
+        name_pos = self.get_name_position(dy=dy)
+        MAIN_DISPLAY.blit(self.name_surface, name_pos)
+
+    def draw_hp_bar(self, dy: int):
+        x, y = self.get_rect().midtop
+        y += dy - HP_BAR_H + 2
+        x -= HP_BAR_W // 2
+
+        draw.rect(MAIN_DISPLAY, HP_BAR_BORDER_COLOR, [[x, y], [HP_BAR_W, HP_BAR_H]], 0, 2)
+        hp_w = (HP_BAR_W-2) * self.health_points / DEFAULT_HP
+        draw.rect(MAIN_DISPLAY, HP_BAR_COLOR, [[x + 1, y + 1], [hp_w, HP_BAR_H-2]], 0, 2)
 
     def get_name_position(self, dy: float = 0) -> Tuple[float, float]:
         x = self.position.x - (self.name_surface.get_width() - self.w_size) // 2
