@@ -4,10 +4,12 @@ import random
 from typing import Dict, Tuple, Optional, List
 
 from logger import LOGGER
-from game_components.user_character import Character, CHAR_SIZE
+from game_components.AI.base import AI
 from game_components.screen import MAIN_DISPLAY
 from game_components.events.base import BaseEvent
 from game_components.events.storm import StormEvent
+from game_components.events.character_died import CharacterGhost
+from game_components.user_character import Character, CHAR_SIZE
 
 SAVE_FILE_NAME = 'save.yaml'
 SAVE_FILE_BACKUP_NAME = 'save_backup.yaml'
@@ -16,15 +18,26 @@ SAVE_FILE_BACKUP_NAME = 'save_backup.yaml'
 class Game:
     def __init__(self):
         self.characters: Dict[str, Character] = {}
+        self.characters_AI: Dict[str, AI] = {}
         self.events: List[BaseEvent] = []
         self.time: float = 0
 
     def update(self, dt: float):
         self.time += dt
-        for character in tuple(self.characters.values()):
-            character.update(dt, time=self.time)
-            if character.dead:
-                self.characters.pop(character.name)
+        for name, character in tuple(self.characters.items()):
+            character_ai = self.characters_AI.get(name)
+            if character_ai:
+                character_ai.update(character=character, dt=dt, time=self.time)
+            try:
+                character.update(dt, time=self.time)
+                character.draw(dt=dt, time=self.time)
+                if character.dead:
+                    self.characters.pop(character.name)
+                    self.characters_AI.pop(character.name, None)
+                    LOGGER.info(f'{character.name} died')
+                    self.add_character_ghost(character)
+            except Exception as e:
+                LOGGER.error(f'Failed to update {name}\n{e}')
 
         for event in self.events.copy():
             event.update(dt, time=self.time)
@@ -33,10 +46,15 @@ class Game:
                 self.events.remove(event)
                 LOGGER.info(f'{event.name} is done')
 
+    def add_ghost(self, character: Character):
+        # TODO
+        pass
+
     def get_character(self, name: str) -> Optional[Character]:
         return self.characters.get(name)
 
     def add_character(self, name: str):
+        self.characters_AI[name] = AI()
         self.characters[name] = Character(name=name,
                                           position=self.get_random_spawn_position()
                                           )
@@ -75,7 +93,19 @@ class Game:
             LOGGER.info(f'Loaded save {SAVE_FILE_NAME}')
 
     def make_storm(self):
-        self.events.append(StormEvent(list(self.characters.values())))
+        self.add_event(StormEvent(list(self.characters.values())))
+
+    def add_character_ghost(self, character: Character):
+        try:
+            self.add_event(CharacterGhost(position=tuple(character.position),
+                                          ghost_surface=character.ghost_surface,
+                                          name_surface=character.name_surface))
+        except Exception as e:
+            print(e)
+            LOGGER.error(f'Failed to create ghost for {character.get_dict()}')
+
+    def add_event(self, event: BaseEvent):
+        self.events.append(event)
 
     @staticmethod
     def get_random_spawn_position() -> Tuple[int, int]:

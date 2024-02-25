@@ -1,4 +1,5 @@
 from pygame import display, Surface, SRCALPHA, DOUBLEBUF, HWACCEL, FULLSCREEN, SCALED, OPENGL, HWSURFACE, RESIZABLE
+from pygame import Rect
 import ctypes
 
 user32 = ctypes.windll.user32
@@ -20,6 +21,10 @@ MAIN_SCREEN_DEF_COLOR = [0, 255, 0]
 
 MAIN_DISPLAY = display.set_mode([SCREEN_W, SCREEN_H], flags)
 MAIN_DISPLAY.fill(MAIN_SCREEN_DEF_COLOR)
+
+
+def is_rect_out_of_screen(rect: Rect) -> bool:
+    return not MAIN_DISPLAY.get_rect().colliderect(Rect(rect))
 
 # SMALL_DISPLAY = Surface([SCREEN_W // 5, SCREEN_H // 5], flags, 32)
 # SMALL_DISPLAY_BACK_COLOR = [0, 0, 0, 125]

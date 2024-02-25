@@ -1,8 +1,7 @@
-import enum
+import random
+from math import sin
 from typing import Tuple, List
 from pygame import Surface, transform, Vector2, Rect
-from math import sin
-import random
 
 from game_components.utils import DEFAULT_BACK_FONT
 from game_components.screen import MAIN_DISPLAY
@@ -10,21 +9,33 @@ from game_components.constants import *
 from game_components.sprite_builder import get_cat_sprite, recolor_sprite, RecolorKeys, SPRITE_IMG_NAME
 
 
+class DeathReason:
+    def __init__(self, text: str):
+        self.text = text
+
+    def __str__(self):
+        return self.text
+
+
+# TODO make character ABC
 class Character:
     def __init__(self, name: str, position: Tuple[int, int],
                  w_size: int = CHAR_SIZE, h_size: int = CHAR_SIZE,
-                 speed: float = MOVE_SPEED, move_direction: int = 0,
+                 speed: float = MOVE_SPEED, move_direction: int = None,
                  body_color: Color = DEFAULT_BODY_COLOR,
                  eyes_color: Color = DEFAULT_EYES_COLOR,
                  health_points: float = DEFAULT_HP,
                  horizontal_velocity: float = 0,
                  vertical_velocity: float = 0,
+                 ghost_surface: Surface = None,
                  **__,
                  ):
         self.name = name
         self.w_size: int = w_size
         self.h_size: int = h_size
         self.position: Vector2 = Vector2(position)
+        if move_direction is None:
+            move_direction = random.randint(-1, 1)
         self.move_direction: int = move_direction
         self.speed: float = speed
         self.horizontal_velocity: float = horizontal_velocity
@@ -37,6 +48,10 @@ class Character:
         self.render_surface()
         self.name_surface: Surface = None
         self.render_name_surface()
+        if ghost_surface is None:
+            ghost_surface = get_cat_sprite('ghost.png', size=self.size)
+        self.ghost_surface: Surface = ghost_surface
+
         self.health_points: float = health_points
         self.alive: bool = True
 
@@ -60,9 +75,8 @@ class Character:
     def update(self, dt: float, time: float):
         self.fall(dt)
         self.move(dt)
-        self.draw(time)
 
-    def draw(self, time: float):
+    def draw(self, dt: float, time: float):
         position = Vector2(self.position)
         if self.horizontal_velocity != 0:
             dy = sin(time * 8 + self.move_anim_deviation) * self.h_size * 0.05

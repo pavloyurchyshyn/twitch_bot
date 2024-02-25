@@ -46,7 +46,6 @@ def get_game_obj() -> 'GameRunner':
         def __init__(self):
             self.is_running: int = 1
             self.game: Game = Game()
-            self.game.add_character('test_person')
             self.redeem_processors: Dict[str, Callable] = {
                 RedeemsNames.spawn: self.process_spawn_redeem,
                 RedeemsNames.jump: self.process_jump_redeem,
@@ -95,7 +94,7 @@ def get_game_obj() -> 'GameRunner':
             MAIN_DISPLAY.blit(fps_text, (0, 0))
 
         def process_redeem(self, redeem: RewardRedeemedObj):
-            LOGGER.info(f'{redeem.user_name} застосував {redeem.name} з аргументом {redeem.input}')
+            LOGGER.info(f'{redeem.user_name} застосував "{redeem.name}" з аргументом {redeem.input}')
 
             process_func = self.redeem_processors.get(redeem.name)
             if redeem.name in RedeemsNames.commands_to_ignore:
@@ -118,7 +117,7 @@ def get_game_obj() -> 'GameRunner':
         def process_recolor_redeem(self, redeem: RewardRedeemedObj, attr: str):
             try:
                 color = redeem.input
-                re_res = re.search(r'(\d{1,3}), ?(\d{1,3}), ?(\d{1,3})', color)
+                re_res = re.search(r'(\d{1,3}),? ?(\d{1,3}),? ?(\d{1,3})', color)
                 if re_res:
                     color = tuple(map(int, re_res.groups()))
 
@@ -149,11 +148,14 @@ def get_game_obj() -> 'GameRunner':
 
         def set_direction(self, redeem: RewardRedeemedObj):
             direction = redeem.input.strip()
-            if not direction.isdigit() or int(direction) not in (-1, 0, 1):
-                raise RedeemError(f'значення може бути тільки -1(ліво), 0(стоп), 1(право)')
-            else:
-                character = self.game.get_character(redeem.user_name)
-                character.move_direction = int(direction)
+            try:
+                if int(direction) not in (-1, 0, 1):
+                    raise RedeemError(f'значення може бути тільки -1(ліво), 0(стоп), 1(право), не "{direction}"')
+                else:
+                    character = self.game.get_character(redeem.user_name)
+                    character.move_direction = int(direction)
+            except Exception:
+                pass
 
         def process_start_storm(self, redeem: RewardRedeemedObj):
             self.game.make_storm()
