@@ -45,7 +45,6 @@ def get_game_obj() -> 'GameRunner':
     ONLINE_TEXT_POS = list(MAIN_DISPLAY.get_rect().midbottom)
     ONLINE_TEXT_POS[1] -= ONLINE_TEXT.get_height() - 2
 
-    
     class GameRunner:
         FPS = 60
 
