@@ -37,7 +37,7 @@ class Game:
                     self.characters_AI.pop(character.name, None)
                     LOGGER.info(f'{character.name} died')
                     self.add_character_ghost(character)
-                    self.send_msg(f'@{character.name} пагіб iamvol3Ogo ') # TODO fix
+                    self.send_msg(f'@{character.name} пагіб iamvol3Ogo ')
             except Exception as e:
                 LOGGER.error(f'Failed to update {name}\n{e}')
 

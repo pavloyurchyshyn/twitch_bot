@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 from typing import Dict, List
 
 os.environ['VisualPygameOn'] = 'on'
@@ -19,6 +20,8 @@ from game_components.errors import RedeemError
 from global_data import Config
 from redeems import RewardRedeemedObj
 from logger import LOGGER
+
+from _thread import start_new_thread
 
 CONFIG = Config()
 CONFIG.load_config()
@@ -52,6 +55,7 @@ class FunBot:
         self.bot_user: TwitchUser = None
         self.pubsub: PubSub = None
         self.listen_channel_points_uuid: str = None
+        self.messages_queue: List[str] = []
 
     async def run(self):
         try:
@@ -63,6 +67,8 @@ class FunBot:
             if self.game_runner.game.get_character(TARGET_CHANNEL) is None:
                 self.game_runner.game.add_character(TARGET_CHANNEL)
             # TODO fix
+            start_new_thread(self.send_messages_thread, ())
+
             self.game_runner.game.send_msg = self.send_message
             self.game_runner.run()
         except Exception as e:
@@ -71,7 +77,7 @@ class FunBot:
         finally:
             if self.chat:
                 try:
-                    # await self.chat.send_message(TARGET_CHANNEL, "Бот вимкнувся")
+                    await self.chat.send_message(TARGET_CHANNEL, "Бот вимкнувся")
                     self.chat.stop()
                 finally:
                     pass
@@ -173,6 +179,8 @@ class FunBot:
                                                            reward_id=reward.id,
                                                            **update_dict)
             LOGGER.info(f'Updated {reward.title} with {update_dict}')
+        else:
+            LOGGER.info(f'Nothing to update in "{reward.title}"')
 
     async def create_reward(self, reward_name: str, rewards_config: dict):
         data = {
@@ -241,10 +249,8 @@ class FunBot:
         else:
             fulfilled = True
 
-        # TODO return channel points
         if not redeem_obj.skip_queue:
             status = RedeemStatus.FULFILLED if fulfilled else RedeemStatus.CANCELED
-
             try:
                 await self.channel_twitch.update_redemption_status(broadcaster_id=self.broadcaster_id,
                                                                    reward_id=redeem_obj.reward_id,
@@ -256,8 +262,21 @@ class FunBot:
                 LOGGER.error(str(e))
 
     def send_message(self, msg: str) -> None:
-        LOGGER.info(f'Send message: {msg}')
-        asyncio.create_task(self.chat.send_message(TARGET_CHANNEL, msg))
+        self.messages_queue.append(msg)
+
+    def send_messages_thread(self):
+        try:
+            while self.program_works:
+                if self.messages_queue:
+                    asyncio.run(self.check_for_send_messages())
+                else:
+                    time.sleep(1)
+        except Exception as e:
+            LOGGER.error(f'Messages thread is dead\n{e}')
+
+    async def check_for_send_messages(self):
+        while self.messages_queue:
+            await self.chat.send_message(TARGET_CHANNEL, self.messages_queue.pop(0))
 
     @property
     def program_works(self) -> bool:
