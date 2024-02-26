@@ -11,6 +11,8 @@ from game_components.sprite_builder import get_character_body_img, recolor_surfa
 
 # TODO make character ABC
 class Character:
+    attrs_const = AttrsCons
+
     def __init__(self, name: str, position: Tuple[int, int],
                  kind: str,
                  w_size: int = CHAR_SIZE, h_size: int = CHAR_SIZE,

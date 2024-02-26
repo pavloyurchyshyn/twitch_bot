@@ -6,6 +6,8 @@ class RedeemsNames:
     set_direction = "змінити напрям"
     every_body_jump = "всім іншим підстрибнути"
     start_storm = "запустити шторм"
+    walk_around = "блукати"
+    walk_to_person = "підійти до"
     commands_to_ignore = [
         "замовити музику",
 
@@ -36,7 +38,8 @@ def get_game_obj() -> 'GameRunner':
     from game_components.screen import MAIN_DISPLAY
     from game_components.game import Game
     from game_components.utils import DEFAULT_FONT
-    from game_components.character.user_character import JUMP_VELOCITY, AttrsCons
+    from game_components.character.user_character import Character, JUMP_VELOCITY, AttrsCons
+    from game_components.AI import base
     from game_components.errors import RedeemError, ProhibitedColor
     from logger import LOGGER
 
@@ -58,6 +61,8 @@ def get_game_obj() -> 'GameRunner':
                 RedeemsNames.set_direction: self.set_direction,
                 RedeemsNames.every_body_jump: self.process_everybody_jump,
                 RedeemsNames.start_storm: self.process_start_storm,
+                RedeemsNames.walk_around: self.process_walk_around,
+                RedeemsNames.walk_to_person: self.process_walk_to_person,
             }
 
         def run(self):
@@ -161,13 +166,44 @@ def get_game_obj() -> 'GameRunner':
                 if int(direction) not in (-1, 0, 1):
                     raise RedeemError(f'значення може бути тільки -1(ліво), 0(стоп), 1(право), не "{direction}"')
                 else:
+                    # TODO make cancel?
+                    if direction == 0:
+                        ai = self.game.characters_AI.get(redeem.user_name)
+                        if ai:
+                            ai.clear()
                     character = self.game.get_character(redeem.user_name)
                     character.move_direction = int(direction)
             except Exception:
                 pass
 
-        def process_start_storm(self, redeem: RewardRedeemedObj):
+        def process_start_storm(self, _):
             self.game.make_storm()
+
+        def process_walk_around(self, redeem: RewardRedeemedObj):
+            ai = self.game.characters_AI.get(redeem.user_name)
+            if ai is None:
+                self.game.add_ai_for(redeem.user_name)
+            if ai.current_task is None:
+                ai.run_idle_walking()
+            else:
+                raise RedeemError(f'Покищо персонаж робить {ai.current_task.name}')
+
+        def process_walk_to_person(self, redeem: RewardRedeemedObj):
+            ai = self.game.get_character_ai(redeem.user_name)
+            target_name: str = str(redeem.input).strip()
+            if target_name.startswith('@'):
+                target_name = target_name.removeprefix('@')
+            target_character: Character = self.game.get_character(target_name)
+            if target_character is None:
+                raise RedeemError(f"персонаж з ім'ям {redeem.input} не існує")
+            elif ai is None:
+                # TODO make CharacterDoNotExists
+                raise RedeemError(f'твій персонаж не існує. Потрібно спочатку створити.')
+            elif ai.current_task and ai.current_task.is_blocking:
+                raise RedeemError(f'персонаж дороблює {ai.current_task.name}')
+            else:
+                ai.clear()
+                ai.add_task(base.GoToPerson(target=target_character))
 
     return GameRunner()
 

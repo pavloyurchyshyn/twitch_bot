@@ -77,7 +77,7 @@ class FunBot:
         finally:
             if self.chat:
                 try:
-                    await self.chat.send_message(TARGET_CHANNEL, "Бот вимкнувся")
+                    # await self.chat.send_message(TARGET_CHANNEL, "Бот вимкнувся")
                     self.chat.stop()
                 finally:
                     pass

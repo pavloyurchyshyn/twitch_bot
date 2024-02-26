@@ -26,12 +26,17 @@ class Game:
 
     def update(self, dt: float):
         self.time += dt
-        for name, character in tuple(self.characters.items()):
+
+        for event in self.events:
+            if event.behind:
+                event.draw()
+
+        for name, character in self.characters.copy().items():
             character_ai = self.characters_AI.get(name)
             if character_ai:
                 character_ai.update(character=character, dt=dt, time=self.time)
             try:
-                character.update(dt, time=self.time)
+                character.update(dt=dt, time=self.time)
                 character.draw(dt=dt, time=self.time)
                 if character.dead:
                     self.characters.pop(character.name)
@@ -44,7 +49,8 @@ class Game:
 
         for event in self.events.copy():
             event.update(dt, time=self.time)
-            event.draw()
+            if not event.behind:
+                event.draw()
             if event.is_done:
                 self.events.remove(event)
                 LOGGER.info(f'{event.name} is done')
@@ -52,11 +58,21 @@ class Game:
     def get_character(self, name: str) -> Optional[Character]:
         return self.characters.get(name)
 
-    def add_character(self, name: str):
+    def add_character(self, name: str, **kwargs):
+        position = kwargs.pop(Character.attrs_const.position, self.get_random_spawn_position())
+        self.characters[name] = get_character(name=name, position=position)
+        self.add_ai_for(name)
+
+    def add_ai_for(self, name: str):
         self.characters_AI[name] = AI()
-        self.characters[name] = get_character(name=name,
-                                              position=self.get_random_spawn_position()
-                                              )
+
+    def get_character_ai(self, name: str) -> Optional[AI]:
+        if name in self.characters:
+            if name not in self.characters_AI:
+                self.add_ai_for(name)
+            return self.characters_AI[name]
+        else:
+            return None
 
     def save(self):
         save = {'avatars_data': {}}
@@ -88,6 +104,7 @@ class Game:
 
             for char_name, char_data in save_data['avatars_data'].items():
                 self.characters[char_name] = get_character(**char_data)
+                self.add_ai_for(char_name)
 
             LOGGER.info(f'Loaded save {SAVE_FILE_NAME}')
 
