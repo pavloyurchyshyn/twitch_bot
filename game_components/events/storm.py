@@ -1,9 +1,8 @@
 import random
 from typing import List
-import math
 from pygame import Surface, Rect, draw
 
-from game_components.user_character import Character
+from game_components.character.user_character import Character
 from game_components.events.base import BaseEvent
 from game_components.screen import MAIN_DISPLAY, is_rect_out_of_screen
 from game_components.utils import load_image
@@ -46,7 +45,7 @@ class StormEvent(BaseEvent):
         if not self.made_hit and self.target:
             if self.hit_box.left <= self.target.get_center()[0] <= self.hit_box.right:
                 self.made_hit = True
-                self.target.damage(DAMAGE)
+                self.target.damage(DAMAGE, reason=self.name)
                 play_sound(SOUNDS_NAME)
                 LOGGER.info(f'{self.target.name} got hit by {self.name}')
 

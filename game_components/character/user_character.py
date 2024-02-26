@@ -6,20 +6,13 @@ from pygame import Surface, transform, Vector2, Rect, draw
 from game_components.utils import DEFAULT_BACK_FONT
 from game_components.screen import MAIN_DISPLAY
 from game_components.constants import *
-from game_components.sprite_builder import get_cat_sprite, recolor_sprite, RecolorKeys, SPRITE_IMG_NAME
-
-
-class DeathReason:
-    def __init__(self, text: str):
-        self.text = text
-
-    def __str__(self):
-        return self.text
+from game_components.sprite_builder import get_character_body_img, recolor_surface, RecolorKeys, get_character_ghost
 
 
 # TODO make character ABC
 class Character:
     def __init__(self, name: str, position: Tuple[int, int],
+                 kind: str,
                  w_size: int = CHAR_SIZE, h_size: int = CHAR_SIZE,
                  speed: float = MOVE_SPEED, move_direction: int = None,
                  body_color: Color = DEFAULT_BODY_COLOR,
@@ -30,7 +23,8 @@ class Character:
                  ghost_surface: Surface = None,
                  **__,
                  ):
-        self.name = name
+        self.name: str = name
+        self.kind: str = kind
         self.w_size: int = w_size
         self.h_size: int = h_size
         self.position: Vector2 = Vector2(position)
@@ -49,23 +43,24 @@ class Character:
         self.name_surface: Surface = None
         self.render_name_surface()
         if ghost_surface is None:
-            ghost_surface = get_cat_sprite('ghost.png', size=self.size)
+            ghost_surface = get_character_ghost(kind=self.kind, size=self.size)
         self.ghost_surface: Surface = ghost_surface
 
         self.health_points: float = health_points
         self.alive: bool = True
 
         self.draw_over: List[Surface] = []
+        self.death_reason: str = ''
 
     def render_surface(self):
-        self.surface = get_cat_sprite(path=SPRITE_IMG_NAME, size=self.size)
-        self.surface = recolor_sprite(sprite=self.surface,
-                                      color_key=RecolorKeys.BODY_COLOR_KEY,
-                                      new_color=self.body_color)
+        self.surface = get_character_body_img(kind=self.kind, size=self.size)
+        self.surface = recolor_surface(surface=self.surface,
+                                       color_key=RecolorKeys.BODY_COLOR_KEY,
+                                       new_color=self.body_color)
 
-        self.surface = recolor_sprite(sprite=self.surface,
-                                      color_key=RecolorKeys.EYES_COLOR_KEY,
-                                      new_color=self.eyes_color)
+        self.surface = recolor_surface(surface=self.surface,
+                                       color_key=RecolorKeys.EYES_COLOR_KEY,
+                                       new_color=self.eyes_color)
 
     def render_name_surface(self):
         name_surface = DEFAULT_BACK_FONT.render(self.name, True, 'white')
@@ -102,18 +97,19 @@ class Character:
         x -= HP_BAR_W // 2
 
         draw.rect(MAIN_DISPLAY, HP_BAR_BORDER_COLOR, [[x, y], [HP_BAR_W, HP_BAR_H]], 0, 2)
-        hp_w = (HP_BAR_W-2) * self.health_points / DEFAULT_HP
-        draw.rect(MAIN_DISPLAY, HP_BAR_COLOR, [[x + 1, y + 1], [hp_w, HP_BAR_H-2]], 0, 2)
+        hp_w = (HP_BAR_W - 2) * self.health_points / DEFAULT_HP
+        draw.rect(MAIN_DISPLAY, HP_BAR_COLOR, [[x + 1, y + 1], [hp_w, HP_BAR_H - 2]], 0, 2)
 
     def get_name_position(self, dy: float = 0) -> Tuple[float, float]:
         x = self.position.x - (self.name_surface.get_width() - self.w_size) // 2
         y = self.position.y - self.name_surface.get_height() + dy
         return x, y
 
-    def damage(self, damage: float):
+    def damage(self, damage: float, reason: str = ''):
         self.health_points -= damage
-        if self.health_points < 0:
+        if self.health_points < 1:
             self.alive = False
+            self.death_reason = reason
 
     def move(self, dt: float):
         if self.move_direction or self.horizontal_velocity:

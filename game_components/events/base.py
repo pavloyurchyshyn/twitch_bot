@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import List, Optional
 import random
 
-from game_components.user_character import Character
+from game_components.character.user_character import Character
 
 
 class BaseEvent:

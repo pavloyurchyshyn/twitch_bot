@@ -26,7 +26,6 @@ def get_game_obj() -> 'GameRunner':
     init()
     import pygame
     mixer.init()
-    from pygame import font
     from pygame import display, event as EVENT
     from pygame.time import Clock
     from pygame import quit as close_program_pygame
@@ -37,11 +36,11 @@ def get_game_obj() -> 'GameRunner':
     from game_components.screen import MAIN_DISPLAY
     from game_components.game import Game
     from game_components.utils import DEFAULT_FONT
-    from game_components.user_character import JUMP_VELOCITY, AttrsCons
+    from game_components.character.user_character import JUMP_VELOCITY, AttrsCons
     from game_components.errors import RedeemError, ProhibitedColor
     from logger import LOGGER
 
-    ONLINE_TEXT = DEFAULT_FONT.render('Бот працює', 1, [255, 255, 255])
+    ONLINE_TEXT = DEFAULT_FONT.render('Бот працює', 1, [255, 255, 255], [100, 100, 100])
     ONLINE_TEXT_POS = list(MAIN_DISPLAY.get_rect().midbottom)
     ONLINE_TEXT_POS[1] -= ONLINE_TEXT.get_height() - 2
 

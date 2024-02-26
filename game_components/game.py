@@ -9,7 +9,8 @@ from game_components.screen import MAIN_DISPLAY
 from game_components.events.base import BaseEvent
 from game_components.events.storm import StormEvent
 from game_components.events.character_died import CharacterGhost
-from game_components.user_character import Character, CHAR_SIZE
+from game_components.character.user_character import Character, CHAR_SIZE
+from game_components.character.fabric import get_character
 
 SAVE_FILE_NAME = 'save.yaml'
 SAVE_FILE_BACKUP_NAME = 'save_backup.yaml'
@@ -48,18 +49,14 @@ class Game:
                 self.events.remove(event)
                 LOGGER.info(f'{event.name} is done')
 
-    def add_ghost(self, character: Character):
-        # TODO
-        pass
-
     def get_character(self, name: str) -> Optional[Character]:
         return self.characters.get(name)
 
     def add_character(self, name: str):
         self.characters_AI[name] = AI()
-        self.characters[name] = Character(name=name,
-                                          position=self.get_random_spawn_position()
-                                          )
+        self.characters[name] = get_character(name=name,
+                                              position=self.get_random_spawn_position()
+                                              )
 
     def save(self):
         save = {'avatars_data': {}}
@@ -90,7 +87,7 @@ class Game:
                 save_data = yaml.safe_load(f)
 
             for char_name, char_data in save_data['avatars_data'].items():
-                self.characters[char_name] = Character(**char_data)
+                self.characters[char_name] = get_character(**char_data)
 
             LOGGER.info(f'Loaded save {SAVE_FILE_NAME}')
 
