@@ -66,8 +66,8 @@ class FunBot:
 
             if self.game_runner.game.get_character(TARGET_CHANNEL) is None:
                 self.game_runner.game.add_character(TARGET_CHANNEL)
-            # TODO fix
-            start_new_thread(self.send_messages_thread, ())
+
+            start_new_thread(asyncio.run, (self.check_for_send_messages(),))
 
             self.game_runner.game.send_msg = self.send_message
             self.game_runner.run()
@@ -264,19 +264,14 @@ class FunBot:
     def send_message(self, msg: str) -> None:
         self.messages_queue.append(msg)
 
-    def send_messages_thread(self):
+    async def check_for_send_messages(self):
         try:
             while self.program_works:
-                if self.messages_queue:
-                    asyncio.run(self.check_for_send_messages())
-                else:
-                    time.sleep(1)
+                while self.messages_queue:
+                    await self.chat.send_message(TARGET_CHANNEL, self.messages_queue.pop(0))
+                await asyncio.sleep(1)
         except Exception as e:
             LOGGER.error(f'Messages thread is dead\n{e}')
-
-    async def check_for_send_messages(self):
-        while self.messages_queue:
-            await self.chat.send_message(TARGET_CHANNEL, self.messages_queue.pop(0))
 
     @property
     def program_works(self) -> bool:
