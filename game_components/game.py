@@ -34,7 +34,7 @@ class Game:
         for name, character in self.characters.copy().items():
             character_ai = self.characters_AI.get(name)
             if character_ai:
-                character_ai.update(character=character, dt=dt, time=self.time)
+                character_ai.update(character=character, dt=dt, time=self.time, game_obj=self)
             try:
                 character.update(dt=dt, time=self.time)
                 character.draw(dt=dt, time=self.time)
@@ -116,8 +116,7 @@ class Game:
             self.add_event(CharacterGhost(position=tuple(character.position),
                                           ghost_surface=character.ghost_surface,
                                           name_surface=character.name_surface))
-        except Exception as e:
-            print(e)
+        except Exception as _:
             LOGGER.error(f'Failed to create ghost for {character.get_dict()}')
 
     def add_event(self, event: BaseEvent):

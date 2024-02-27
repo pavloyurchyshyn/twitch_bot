@@ -16,11 +16,11 @@ class TaskState(enum.Enum):
 class BaseTask:
     name: str
     verbal_name: str
-    STATES: TaskState = TaskState
+    STATUS: TaskState = TaskState
     is_blocking: bool = False
 
     @abstractmethod
-    def tick(self, character: Character, dt: float, time: float) -> TaskState:
+    def tick(self, character: Character, dt: float, time: float, game_obj, **kwargs) -> TaskState:
         raise NotImplementedError
     # TODO think about it
     # @abstractmethod
@@ -42,9 +42,9 @@ class AI:
     def add_task(self, task: BaseTask) -> None:
         self.tasks_queue.append(task)
 
-    def update(self, character, dt: float, time: float) -> None:
+    def update(self, character, dt: float, time: float, game_obj) -> None:
         if self.tasks_queue:
-            tick_result = self.current_task.tick(character=character, dt=dt, time=time)
+            tick_result = self.current_task.tick(character=character, dt=dt, time=time, game_obj=game_obj)
             if tick_result in (TaskState.Done, TaskState.Failed):
                 self.tasks_queue.pop(0)
 
@@ -87,7 +87,7 @@ class IdleWalk(BaseTask):
         # TODO fix numbers
         return GoTo((scaled_w(random.uniform(0.05, 0.95)), SCREEN_H - 5))
 
-    def tick(self, character: Character, dt: float, time: float) -> TaskState:
+    def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
         if self.timeout is None:
             self.timeout = time + random.randint(3, 10)
             self.subtask = self.get_random_go_to_task()
@@ -112,7 +112,7 @@ class GoToPerson(GoTo):
         self.target: Character = target
         super().__init__(tuple(target.position))
 
-    def tick(self, character: Character, dt: float, time: float, *_) -> TaskState:
+    def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
         self.position = self.target.position
         if self.target.dead:
             return TaskState.Failed
