@@ -16,7 +16,7 @@ class Character:
     def __init__(self, name: str, position: Tuple[int, int],
                  kind: str,
                  w_size: int = CHAR_SIZE, h_size: int = CHAR_SIZE,
-                 speed: float = MOVE_SPEED, move_direction: int = None,
+                 speed: float = MOVE_SPEED, move_direction: int = 1,
                  body_color: Color = DEFAULT_BODY_COLOR,
                  eyes_color: Color = DEFAULT_EYES_COLOR,
                  health_points: float = DEFAULT_HP,
@@ -29,7 +29,8 @@ class Character:
         self.kind: str = kind
         self.w_size: int = w_size
         self.h_size: int = h_size
-        self.position: Vector2 = Vector2(position)
+        self._position: List = list(position)
+        self.rect: Rect = Rect(position, self.size)
         if move_direction is None:
             move_direction = random.randint(-1, 1)
         self.move_direction: int = move_direction
@@ -74,10 +75,10 @@ class Character:
         self.move(dt)
 
     def draw(self, dt: float, time: float):
-        position = Vector2(self.position)
+        position = list(self.position)
         if self.horizontal_velocity != 0:
             dy = sin(time * 8 + self.move_anim_deviation) * self.h_size * 0.05
-            position.y += dy
+            position[1] += dy
         else:
             dy = 0
 
@@ -88,24 +89,25 @@ class Character:
 
         self.draw_name(dy)
         self.draw_hp_bar(dy)
+        draw.rect(MAIN_DISPLAY, 'red', self.rect, 1)
 
     def draw_name(self, dy: int):
         name_pos = self.get_name_position(dy=dy)
         MAIN_DISPLAY.blit(self.name_surface, name_pos)
 
+    def get_name_position(self, dy: float = 0) -> Tuple[float, float]:
+        x = self.position[0] - (self.name_surface.get_width() - self.w_size) // 2
+        y = self.position[1] - self.name_surface.get_height() + dy
+        return x, y
+
     def draw_hp_bar(self, dy: int):
-        x, y = self.get_rect().midtop
+        x, y = self.rect.midtop
         y += dy - HP_BAR_H + 2
         x -= HP_BAR_W // 2
 
         draw.rect(MAIN_DISPLAY, HP_BAR_BORDER_COLOR, [[x, y], [HP_BAR_W, HP_BAR_H]], 0, 2)
         hp_w = (HP_BAR_W - 2) * self.health_points / DEFAULT_HP
         draw.rect(MAIN_DISPLAY, HP_BAR_COLOR, [[x + 1, y + 1], [hp_w, HP_BAR_H - 2]], 0, 2)
-
-    def get_name_position(self, dy: float = 0) -> Tuple[float, float]:
-        x = self.position.x - (self.name_surface.get_width() - self.w_size) // 2
-        y = self.position.y - self.name_surface.get_height() + dy
-        return x, y
 
     def damage(self, damage: float, reason: str = ''):
         self.health_points -= damage
@@ -121,24 +123,28 @@ class Character:
             elif not self.is_falling:
                 self.horizontal_velocity = self.move_direction * self.speed
 
-            self.position.x += self.horizontal_velocity * dt
-            if self.position.x > (MAIN_DISPLAY.get_width() - self.w_size):
-                self.position.x = MAIN_DISPLAY.get_width() - self.w_size
+            self._position[0] += self.horizontal_velocity * dt
+            self.rect.x = self._position[0]
+
+            if self.rect.x > (MAIN_DISPLAY.get_width() - self.w_size):
+                self.rect.x = MAIN_DISPLAY.get_width() - self.w_size
                 self.move_direction = -1
-            elif self.position.x < 0:
-                self.position.x = 0
+            elif self.rect.x < 1:
+                self.rect.x = 0
                 self.move_direction = 1
 
     def fall(self, dt):
         if self.vertical_velocity or self.is_falling:
-            self.position.y += self.vertical_velocity * dt
+            self.rect.y += self.vertical_velocity * dt
             self.vertical_velocity += FALL_SPEED * dt
 
-            if self.position.y < - self.h_size * 2:
-                self.position.y = -self.h_size * 2
+            if self.rect.y < - self.h_size * 2:
+                self._position[1] -= self.h_size * 2
+                self.rect.y = self._position[1]
                 self.vertical_velocity = 0
-            elif self.position.y > MAIN_DISPLAY.get_height() - self.h_size:
-                self.position.y = MAIN_DISPLAY.get_height() - self.h_size
+            elif self.rect.y > MAIN_DISPLAY.get_height() - self.h_size:
+                self._position[1] = MAIN_DISPLAY.get_height() - self.h_size
+                self.rect.y = self._position[1]
                 self.vertical_velocity = 0
 
     @property
@@ -147,7 +153,7 @@ class Character:
 
     @property
     def is_falling(self) -> bool:
-        return self.position.y < MAIN_DISPLAY.get_height() - self.h_size
+        return self.rect.y < MAIN_DISPLAY.get_height() - self.h_size
 
     def get_dict(self) -> dict:
         data = {attr_name.value: getattr(self, attr_name.value) for attr_name in AttrsCons}
@@ -156,12 +162,22 @@ class Character:
         data[AttrsCons.eyes_color.value] = tuple(data[AttrsCons.eyes_color.value])
         return data
 
-    def get_rect(self) -> Rect:
-        return Rect(self.position.x, self.position.y, self.w_size, self.h_size)
+    def stop(self):
+        self.move_direction = 0
 
     def get_center(self) -> Tuple[int, int]:
-        return self.get_rect().center
+        return self.rect.center
 
     @property
     def dead(self) -> bool:
         return not self.alive
+
+    @property
+    def position(self) -> Tuple[int, int]:
+        return self.rect.topleft
+
+    @position.setter
+    def position(self, position: Tuple[int, int]):
+        self._position[0] = position[0]
+        self._position[1] = position[1]
+        self.rect.x, self.rect.y = position

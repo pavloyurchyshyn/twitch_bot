@@ -10,7 +10,7 @@ class GoAndKiss(GoToPerson):
     def tick(self, character: Character, dt: float, time: float, game_obj: Game, **kwargs) -> TaskState:
         res = super().tick(character=character, dt=dt, time=time)
         if res == self.STATUS.Done:
-            game_obj.add_event(FlyingHeart(self.target.get_rect().topleft))
-            game_obj.add_event(FlyingHeart(character.get_rect().topleft))
+            game_obj.add_event(FlyingHeart(self.target.position))
+            game_obj.add_event(FlyingHeart(character.position))
 
         return res

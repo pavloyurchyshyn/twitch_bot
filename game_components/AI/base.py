@@ -67,9 +67,9 @@ class GoTo(BaseTask):
 
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
         character.move_direction = -1 if self.position[0] < character.position[0] else 1
-        if character.get_rect().collidepoint(*self.position):
+        if character.rect.collidepoint(*self.position):
             LOGGER.debug(f'Walking for {character.name} to {self.position} is done.')
-            character.move_direction = 0
+            character.stop()
             return TaskState.Done
         else:
             return TaskState.InProgress
@@ -115,7 +115,11 @@ class GoToPerson(GoTo):
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
         self.position = self.target.position
         if self.target.dead:
+            character.stop()
             return TaskState.Failed
+        elif self.target.rect.colliderect(character.rect):
+            character.stop()
+            return TaskState.Done
 
         res = super().tick(character=character, dt=dt, time=time)
         if res == TaskState.Done:
