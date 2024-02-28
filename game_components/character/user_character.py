@@ -91,7 +91,7 @@ class Character:
 
         self.draw_name(dy)
         self.draw_hp_bar(dy)
-        draw.rect(MAIN_DISPLAY, 'red', self.rect, 1)
+        # draw.rect(MAIN_DISPLAY, 'red', self.rect, 3)
 
     def draw_name(self, dy: int):
         name_pos = self.get_name_position(dy=dy)

@@ -18,6 +18,8 @@ class BaseTask:
     verbal_name: str
     STATUS: TaskState = TaskState
     is_blocking: bool = False
+    endless: bool = False
+    skippable: bool = True
 
     @abstractmethod
     def tick(self, character: Character, dt: float, time: float, game_obj, **kwargs) -> TaskState:
@@ -42,11 +44,14 @@ class AI:
     def add_task(self, task: BaseTask) -> None:
         self.tasks_queue.append(task)
 
-    def update(self, character, dt: float, time: float, game_obj) -> None:
+    def update(self, character: Character, dt: float, time: float, game_obj) -> None:
         if self.tasks_queue:
             tick_result = self.current_task.tick(character=character, dt=dt, time=time, game_obj=game_obj)
             if tick_result in (TaskState.Done, TaskState.Failed):
-                self.tasks_queue.pop(0)
+                self.finish_current_task()
+
+    def finish_current_task(self):
+        self.tasks_queue.pop(0)
 
     def clear(self):
         return self.tasks_queue.clear()
@@ -76,6 +81,7 @@ class GoTo(BaseTask):
 
 
 class IdleWalk(BaseTask):
+    endless = True
     name = 'idle_walk'
 
     def __init__(self):

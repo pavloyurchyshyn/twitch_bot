@@ -2,6 +2,7 @@ from game_components.AI.base import GoToPerson, TaskState
 from game_components.character.user_character import Character
 from game_components.game import Game
 from game_components.events.flying_heart import FlyingHeart
+from game_components.sounds import play_kiss_sound
 
 
 class GoAndKiss(GoToPerson):
@@ -12,5 +13,5 @@ class GoAndKiss(GoToPerson):
         if res == self.STATUS.Done:
             game_obj.add_event(FlyingHeart(self.target.position))
             game_obj.add_event(FlyingHeart(character.position))
-
+            play_kiss_sound()
         return res

@@ -7,7 +7,6 @@ class RedeemsNames:
     every_body_jump = "всім іншим підстрибнути"
     start_storm = "запустити шторм"
     walk_around = "блукати"
-    walk_to_person = "підійти до"
     kiss_person = "поцілювати"
     kick_person = "штовхнути"
     commands_to_ignore = [
@@ -66,7 +65,6 @@ def get_game_obj() -> 'GameRunner':
                 RedeemsNames.every_body_jump: self.process_everybody_jump,
                 RedeemsNames.start_storm: self.process_start_storm,
                 RedeemsNames.walk_around: self.process_walk_around,
-                RedeemsNames.walk_to_person: self.process_walk_to_person,
                 RedeemsNames.kiss_person: self.process_kiss_person,
                 RedeemsNames.kick_person: self.process_kick_person,
             }
@@ -193,18 +191,6 @@ def get_game_obj() -> 'GameRunner':
             else:
                 raise RedeemError(f'Покищо персонаж робить {ai.current_task.name}')
 
-        def process_walk_to_person(self, redeem: RewardRedeemedObj):
-            target_name: str = self.normalize_nickname(str(redeem.input))
-            self.validate_user_character_exists(target_name)
-            self.validate_target_person_exists(redeem.user_name)
-
-            ai = self.game.get_character_ai(redeem.user_name)
-            self.validate_current_task_not_blocking(ai)
-
-            ai.clear()
-            target_character: Character = self.game.get_character(target_name)
-            ai.add_task(base.GoToPerson(target=target_character))
-
         def process_kiss_person(self, redeem: RewardRedeemedObj):
             target_name: str = self.normalize_nickname(str(redeem.input))
             self.validate_interaction_with_other_character(user_name=redeem.user_name, target_name=target_name)
@@ -212,7 +198,8 @@ def get_game_obj() -> 'GameRunner':
             ai = self.game.get_character_ai(redeem.user_name)
             self.validate_current_task_not_blocking(ai)
 
-            ai.clear()
+            if ai.current_task and ai.current_task.endless and ai.current_task.skippable:
+                ai.finish_current_task()
             target_character: Character = self.game.get_character(target_name)
             ai.add_task(GoAndKiss(target=target_character))
 
@@ -223,7 +210,8 @@ def get_game_obj() -> 'GameRunner':
             ai = self.game.get_character_ai(redeem.user_name)
             self.validate_current_task_not_blocking(ai)
 
-            ai.clear()
+            if ai.current_task and ai.current_task.endless and ai.current_task.skippable:
+                ai.finish_current_task()
             target_character: Character = self.game.get_character(target_name)
             ai.add_task(GoAndKick(target=target_character))
 

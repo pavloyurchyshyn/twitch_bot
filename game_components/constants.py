@@ -17,6 +17,7 @@ HP_BAR_COLOR = Color('white')
 HP_BAR_BORDER_COLOR = Color(90, 90, 90)
 
 KICK_SOUND = '8bit_kick.mp3'
+KISS_SOUND = 'kiss.mp3'
 
 
 class AttrsCons(enum.Enum):

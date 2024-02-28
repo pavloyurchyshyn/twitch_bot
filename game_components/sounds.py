@@ -1,7 +1,7 @@
 from pathlib import Path
 from pygame import mixer
 
-from game_components.constants import KICK_SOUND
+from game_components.constants import KICK_SOUND, KISS_SOUND
 
 SOUNDS_CASH = {}
 
@@ -20,3 +20,7 @@ def play_sound(sound_path: str):
 
 def play_kick_sound():
     play_sound(KICK_SOUND)
+
+
+def play_kiss_sound():
+    play_sound(KISS_SOUND)

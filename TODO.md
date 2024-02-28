@@ -34,3 +34,5 @@
   - mods
   - схема для кастомного створіння
   - validations
+  - lowercase nicknames
+  - sounds volume

@@ -251,16 +251,22 @@ class FunBot:
             fulfilled = True
 
         if not redeem_obj.skip_queue:
-            status = RedeemStatus.FULFILLED if fulfilled else RedeemStatus.CANCELED
             try:
-                await self.channel_twitch.update_redemption_status(broadcaster_id=self.broadcaster_id,
-                                                                   reward_id=redeem_obj.reward_id,
-                                                                   redemption_ids=redeem_obj.id,
-                                                                   status=status,
-                                                                   )
-                LOGGER.debug(f'Redemption {redeem_obj.name} from {redeem_obj.user_name} status is {status}')
+                await self.manage_spent_points(redeem_obj=redeem_obj, fulfilled=fulfilled)
             except Exception as e:
                 LOGGER.error(str(e))
+
+    async def manage_spent_points(self, redeem_obj: RewardRedeemedObj, fulfilled: bool = True):
+        status = RedeemStatus.FULFILLED if fulfilled else RedeemStatus.CANCELED
+        try:
+            await self.channel_twitch.update_redemption_status(broadcaster_id=self.broadcaster_id,
+                                                               reward_id=redeem_obj.reward_id,
+                                                               redemption_ids=redeem_obj.id,
+                                                               status=status,
+                                                               )
+            LOGGER.debug(f'Redemption {redeem_obj.name} from {redeem_obj.user_name} status is {status}')
+        except Exception as e:
+            LOGGER.error(str(e))
 
     def send_message(self, msg: str) -> None:
         self.messages_queue.append(msg)
