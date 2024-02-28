@@ -16,11 +16,11 @@ CLOUD_IMG = 'storm_clouds.png'
 
 
 class StormEvent(BaseEvent):
-    blocking = False
+    is_blocking = False
     name = 'StormLight'
 
     def __init__(self, characters_list: List[Character]):
-        super().__init__(characters_list=characters_list)
+        super().__init__(characters_list=characters_list, characters_ai={})
         self.cloud_surface: Surface = load_image(CLOUD_IMG)
         self.direction: int = random.choice((1, -1))
 

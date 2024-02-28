@@ -33,3 +33,4 @@ class AttrsCons(enum.Enum):
     eyes_color = 'eyes_color'
     health_points = 'health_points'
     kind = 'kind'
+    max_health_points = 'max_health_points'

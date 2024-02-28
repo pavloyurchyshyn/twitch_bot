@@ -1,14 +1,14 @@
 import asyncio
 import os
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 os.environ['VisualPygameOn'] = 'on'
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 import datetime
 from twitchAPI.type import CustomRewardRedemptionStatus as RedeemStatus, PredictionStatus
 from twitchAPI.twitch import Twitch
-from twitchAPI.object.api import TwitchUser, CustomReward
+from twitchAPI.object.api import TwitchUser, CustomReward, Prediction
 from twitchAPI.pubsub import PubSub
 from twitchAPI.oauth import UserAuthenticator, UserAuthenticationStorageHelper
 from twitchAPI.type import AuthScope, ChatEvent
@@ -57,6 +57,7 @@ class FunBot:
         self.pubsub: PubSub = None
         self.listen_channel_points_uuid: str = None
         self.messages_queue: List[str] = []
+        self.current_prediction: Optional[Prediction] = None
 
     async def run(self):
         try:
@@ -71,11 +72,16 @@ class FunBot:
             start_new_thread(asyncio.run, (self.check_for_send_messages(),))
 
             self.game_runner.game.send_msg = self.send_message
+            self.game_runner.game.create_prediction = self.sync_create_predict
+            self.game_runner.game.end_prediction = self.sync_end_prediction
             self.game_runner.run()
         except Exception as e:
             LOGGER.warning(e)
             # await self.chat.send_message(TARGET_CHANNEL, 'Бот впав BibleThump')
         finally:
+            if self.current_prediction:
+                await self.end_prediction(status=PredictionStatus.CANCELED)
+
             if self.chat:
                 try:
                     # await self.chat.send_message(TARGET_CHANNEL, "Бот вимкнувся")
@@ -250,7 +256,7 @@ class FunBot:
         else:
             fulfilled = True
 
-        if not redeem_obj.skip_queue:
+        if redeem_obj.fulfill_now and not redeem_obj.skip_queue:
             try:
                 await self.manage_spent_points(redeem_obj=redeem_obj, fulfilled=fulfilled)
             except Exception as e:
@@ -279,6 +285,58 @@ class FunBot:
                 await asyncio.sleep(1)
         except Exception as e:
             LOGGER.error(f'Messages thread is dead\n{e}')
+
+    def sync_create_predict(self, title: str, outcomes: List[str], time_to_predict: int = 60):
+        start_new_thread(asyncio.run, (self.create_prediction(title=title,
+                                                              outcomes=outcomes,
+                                                              time_to_predict=time_to_predict),))
+
+    async def create_prediction(self, title: str, outcomes: List[str], time_to_predict: int = 60):
+        try:
+            self.current_prediction = await self.channel_twitch.create_prediction(broadcaster_id=self.broadcaster_id,
+                                                                                  title=title,
+                                                                                  outcomes=outcomes,
+                                                                                  prediction_window=time_to_predict,
+                                                                                  )
+        except Exception as e:
+            LOGGER.error(f'Failed to start prediction {title}({outcomes}) \n{e}')
+
+    def sync_end_prediction(self, status: PredictionStatus, winner: Optional[str] = None, reason: str = ''):
+        start_new_thread(asyncio.run, (self.end_prediction(status=status, winner=winner, reason=reason),))
+
+    async def end_prediction(self, status: PredictionStatus, winner: Optional[str] = None, reason: str = ''):
+        if self.current_prediction:
+            try:
+                if winner:
+                    winners = [w.id for w in self.current_prediction.outcomes if w.title == winner]
+                    if not winners:
+                        raise Exception(f'Any winner id do not match with {winner}')
+                    winner_id = winners[0]
+                else:
+                    winner_id = None
+                # TODO if not found all ok
+                await self.channel_twitch.end_prediction(broadcaster_id=self.broadcaster_id,
+                                                         prediction_id=self.current_prediction.id,
+                                                         status=status,
+                                                         winning_outcome_id=winner_id
+                                                         )
+                if status == PredictionStatus.LOCKED:
+                    await self.chat.send_message(TARGET_CHANNEL, f"Час ставок закінчився! {reason}")
+                elif status == PredictionStatus.CANCELED and not winner:
+                    await self.chat.send_message(TARGET_CHANNEL, f"Предікшн відмінено! {reason}")
+            except Exception as e:
+                LOGGER.error(f'Failed to end prediction {self.current_prediction.title} status={status}, winner={winner}')
+                LOGGER.error(f'Reason {e}')
+                # await self.chat.send_message(TARGET_CHANNEL,
+                #                              f'@{self.channel_owner_user.login} не вийшло змінити предікшн')
+            else:
+                LOGGER.info(f'Changed prediction status to {status} without errors')
+            finally:
+                if status == PredictionStatus.CANCELED:
+                    self.current_prediction = None
+
+        else:
+            LOGGER.warning(f'Have not predict to end!')
 
     @property
     def program_works(self) -> bool:

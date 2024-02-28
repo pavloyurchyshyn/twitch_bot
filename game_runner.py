@@ -9,6 +9,7 @@ class RedeemsNames:
     walk_around = "блукати"
     kiss_person = "поцілювати"
     kick_person = "штовхнути"
+    start_duel = "почати дуель"
     commands_to_ignore = [
         "замовити музику",
 
@@ -67,6 +68,7 @@ def get_game_obj() -> 'GameRunner':
                 RedeemsNames.walk_around: self.process_walk_around,
                 RedeemsNames.kiss_person: self.process_kiss_person,
                 RedeemsNames.kick_person: self.process_kick_person,
+                RedeemsNames.start_duel: self.process_start_duel,
             }
 
         def run(self):
@@ -162,6 +164,8 @@ def get_game_obj() -> 'GameRunner':
                     character.vertical_velocity -= JUMP_VELOCITY
 
         def set_direction(self, redeem: RewardRedeemedObj):
+            if self.game.check_if_any_event_is_blocking():
+                return
             direction = redeem.input.strip()
             try:
                 if int(direction) not in (-1, 0, 1):
@@ -178,7 +182,10 @@ def get_game_obj() -> 'GameRunner':
                 pass
 
         def process_start_storm(self, *_, **__):
-            self.game.make_storm()
+            if not self.game.check_if_any_event_is_blocking():
+                self.game.make_storm()
+            else:
+                raise RedeemError('триває інший івент')
 
         def process_walk_around(self, redeem: RewardRedeemedObj):
             ai = self.game.characters_AI.get(redeem.user_name)
@@ -214,6 +221,28 @@ def get_game_obj() -> 'GameRunner':
                 ai.finish_current_task()
             target_character: Character = self.game.get_character(target_name)
             ai.add_task(GoAndKick(target=target_character))
+
+        def process_start_duel(self, redeem: RewardRedeemedObj):
+            target_name: str = self.normalize_nickname(str(redeem.input))
+            self.validate_interaction_with_other_character(user_name=redeem.user_name, target_name=target_name)
+
+            ai = self.game.get_character_ai(redeem.user_name)
+            self.validate_current_task_not_blocking(ai)
+
+            target_ai = self.game.get_character_ai(target_name)
+            self.validate_current_task_not_blocking(target_ai)
+
+            if self.game.check_if_any_event_is_blocking() or \
+                    self.game.check_if_redeem_is_blocked_by_events(redeem.name):
+                raise RedeemError('триває інший івент')
+
+            if ai.current_task and not ai.current_task.skippable:
+                raise RedeemError('виконується задача яку не можна пропустити')
+            elif target_ai.current_task and not target_ai.current_task.skippable:
+                raise RedeemError(f'опонент виконує задачу яку не можна пропустити')
+
+            self.game.start_duel(duelist_1=self.game.get_character(redeem.user_name),
+                                 duelist_2=self.game.get_character(target_name))
 
         def validate_interaction_with_other_character(self, user_name: str, target_name: str):
             self.validate_user_character_exists(user_name)

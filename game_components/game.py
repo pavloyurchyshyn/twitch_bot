@@ -6,11 +6,14 @@ from typing import Dict, Tuple, Optional, List, Callable
 from logger import LOGGER
 from game_components.AI.base import AI
 from game_components.screen import MAIN_DISPLAY
-from game_components.events.base import BaseEvent
-from game_components.events.storm import StormEvent
-from game_components.events.character_died import CharacterGhost
 from game_components.character.user_character import Character, CHAR_SIZE
 from game_components.character.fabric import get_character
+
+
+from game_components.events.base import BaseEvent
+from game_components.events.storm import StormEvent
+from game_components.events.duel_event import DuelEvent
+from game_components.events.character_died import CharacterGhost
 
 SAVE_FILE_NAME = 'save.yaml'
 SAVE_FILE_BACKUP_NAME = 'save_backup.yaml'
@@ -21,7 +24,9 @@ class Game:
         self.characters: Dict[str, Character] = {}
         self.characters_AI: Dict[str, AI] = {}
         self.events: List[BaseEvent] = []
-        self.send_msg: Callable = lambda *_, **__: None
+        self.send_msg: Callable = lambda *_, **__: None  # TODO make functions interfaces
+        self.create_prediction: Callable = lambda *_, **__: None
+        self.end_prediction: Callable = lambda *_, **__: None
         self.time: float = 0
 
     def update(self, dt: float):
@@ -109,7 +114,7 @@ class Game:
             LOGGER.info(f'Loaded save {SAVE_FILE_NAME}')
 
     def make_storm(self):
-        self.add_event(StormEvent(list(self.characters.values())))
+        self.add_event(StormEvent(self.get_characters_list()))
 
     def add_character_ghost(self, character: Character):
         try:
@@ -121,6 +126,31 @@ class Game:
 
     def add_event(self, event: BaseEvent):
         self.events.append(event)
+
+    def check_if_any_event_is_blocking(self) -> bool:
+        return any([event.is_blocking for event in self.events])
+
+    def check_if_redeem_is_blocked_by_events(self, redeem_name: str) -> bool:
+        return any([redeem_name in event.blocked_redeems for event in self.events])
+
+    def start_duel(self, duelist_1: Character, duelist_2: Character):
+        self.send_msg(f'УВАГА @{duelist_1.name} оголосив дуель @{duelist_2.name} iamvol3Eh !')
+        duel_event = DuelEvent(duelist_1=duelist_1,
+                               duelist_2=duelist_2,
+                               characters_list=self.get_characters_list(),
+                               characters_ai=self.characters_AI,
+                               update_prediction=self.end_prediction,
+                               )
+
+        self.create_prediction(title='Хто переможе?',
+                               outcomes=[duelist_1.name, duelist_2.name],
+                               time_to_predict=duel_event.prepare_timer)
+
+        self.add_event(duel_event)
+        LOGGER.info(f'Started duel between {duelist_1.name} and {duelist_2.name}')
+
+    def get_characters_list(self) -> List[Character]:
+        return list(self.characters.values())
 
     @staticmethod
     def get_random_spawn_position() -> Tuple[int, int]:

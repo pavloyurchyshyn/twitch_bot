@@ -51,7 +51,8 @@ class AI:
                 self.finish_current_task()
 
     def finish_current_task(self):
-        self.tasks_queue.pop(0)
+        if self.tasks_queue:
+            self.tasks_queue.pop(0)
 
     def clear(self):
         return self.tasks_queue.clear()

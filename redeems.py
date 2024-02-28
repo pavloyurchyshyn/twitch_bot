@@ -14,3 +14,5 @@ class RewardRedeemedObj:
         self.reward_id = redemption['reward']['id']
         self.channel_id: str = redemption['reward']['channel_id']
         self.skip_queue: bool = redemption['reward']['should_redemptions_skip_request_queue']
+
+        self.fulfill_now: bool = True

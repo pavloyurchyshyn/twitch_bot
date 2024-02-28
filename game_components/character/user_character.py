@@ -20,6 +20,7 @@ class Character:
                  body_color: Color = DEFAULT_BODY_COLOR,
                  eyes_color: Color = DEFAULT_EYES_COLOR,
                  health_points: float = DEFAULT_HP,
+                 max_health_points: float = DEFAULT_HP,
                  horizontal_velocity: float = 0,
                  vertical_velocity: float = 0,
                  ghost_surface: Surface = None,
@@ -30,14 +31,20 @@ class Character:
         self.kind: str = kind
         self.w_size: int = w_size
         self.h_size: int = h_size
+
+        self.health_points: float = health_points
+        self.max_health_points: float = max_health_points
+
         self._position: List = list(position)
         self.rect: Rect = Rect(position, self.size)
         if move_direction is None:
             move_direction = random.randint(-1, 1)
         self.move_direction: int = move_direction
         self.speed: float = speed
+
         self.horizontal_velocity: float = horizontal_velocity
         self.vertical_velocity: float = vertical_velocity + 0.1
+
         self.body_color: Color = Color(body_color)
         self.eyes_color: Color = Color(eyes_color)
         self.move_anim_deviation: int = random.randrange(-1, 2)
@@ -51,7 +58,6 @@ class Character:
             ghost_surface = get_character_ghost(kind=self.kind, size=self.size)
         self.ghost_surface: Surface = ghost_surface
 
-        self.health_points: float = health_points
         self.alive: bool = True
 
         self.draw_over: List[Surface] = []
@@ -108,7 +114,7 @@ class Character:
         x -= HP_BAR_W // 2
 
         draw.rect(MAIN_DISPLAY, HP_BAR_BORDER_COLOR, [[x, y], [HP_BAR_W, HP_BAR_H]], 0, 2)
-        hp_w = (HP_BAR_W - 2) * self.health_points / DEFAULT_HP
+        hp_w = (HP_BAR_W - 2) * self.health_points / self.max_health_points
         draw.rect(MAIN_DISPLAY, HP_BAR_COLOR, [[x + 1, y + 1], [hp_w, HP_BAR_H - 2]], 0, 2)
 
     def damage(self, damage: float, reason: str = ''):
@@ -170,6 +176,9 @@ class Character:
     def get_center(self) -> Tuple[int, int]:
         return self.rect.center
 
+    def restore_hp(self):
+        self.health_points = self.max_health_points
+
     @property
     def dead(self) -> bool:
         return not self.alive
@@ -177,6 +186,9 @@ class Character:
     @property
     def position(self) -> Tuple[int, int]:
         return self.rect.topleft
+
+    def on_position(self, position: Tuple[int, int]) -> bool:
+        return self.rect.collidepoint(position)
 
     @position.setter
     def position(self, position: Tuple[int, int]):
