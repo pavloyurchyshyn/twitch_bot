@@ -66,13 +66,13 @@ class GoTo(BaseTask):
         self.position: Tuple[int, int] = position
 
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
-        character.move_direction = -1 if self.position[0] < character.position[0] else 1
-        if character.rect.collidepoint(*self.position):
-            LOGGER.debug(f'Walking for {character.name} to {self.position} is done.')
-            character.stop()
-            return TaskState.Done
-        else:
-            return TaskState.InProgress
+        if not character.is_falling:
+            character.move_direction = -1 if self.position[0] < character.position[0] else 1
+            if character.rect.collidepoint(*self.position):
+                LOGGER.debug(f'Walking for {character.name} to {self.position} is done.')
+                character.stop()
+                return TaskState.Done
+        return TaskState.InProgress
 
 
 class IdleWalk(BaseTask):

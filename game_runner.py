@@ -9,6 +9,7 @@ class RedeemsNames:
     walk_around = "блукати"
     walk_to_person = "підійти до"
     kiss_person = "поцілювати"
+    kick_person = "штовхнути"
     commands_to_ignore = [
         "замовити музику",
 
@@ -38,10 +39,11 @@ def get_game_obj() -> 'GameRunner':
     from redeems import RewardRedeemedObj
     from game_components.screen import MAIN_DISPLAY
     from game_components.game import Game
-    from game_components.utils import DEFAULT_FONT
+    from game_components.utils import DEFAULT_FONT, normalize_color
     from game_components.character.user_character import Character, JUMP_VELOCITY, AttrsCons
     from game_components.AI import base
     from game_components.AI.go_and_kiss import GoAndKiss
+    from game_components.AI.go_and_kick import GoAndKick
     from game_components.errors import RedeemError, ProhibitedColor
     from logger import LOGGER
 
@@ -66,6 +68,7 @@ def get_game_obj() -> 'GameRunner':
                 RedeemsNames.walk_around: self.process_walk_around,
                 RedeemsNames.walk_to_person: self.process_walk_to_person,
                 RedeemsNames.kiss_person: self.process_kiss_person,
+                RedeemsNames.kick_person: self.process_kick_person,
             }
 
         def run(self):
@@ -136,10 +139,7 @@ def get_game_obj() -> 'GameRunner':
                 color = redeem.input
                 re_res = re.search(r'(\d{1,3}),? ?(\d{1,3}),? ?(\d{1,3})', color)
                 if re_res:
-                    color = tuple(map(int, re_res.groups()))
-
-                if color == pygame.Color('green'):
-                    raise ProhibitedColor(color)
+                    color = normalize_color(tuple(map(int, re_res.groups())))
 
                 color = pygame.Color(color)
             except ProhibitedColor:
@@ -207,8 +207,7 @@ def get_game_obj() -> 'GameRunner':
 
         def process_kiss_person(self, redeem: RewardRedeemedObj):
             target_name: str = self.normalize_nickname(str(redeem.input))
-            self.validate_user_character_exists(target_name)
-            self.validate_target_person_exists(redeem.user_name)
+            self.validate_interaction_with_other_character(user_name=redeem.user_name, target_name=target_name)
 
             ai = self.game.get_character_ai(redeem.user_name)
             self.validate_current_task_not_blocking(ai)
@@ -216,6 +215,21 @@ def get_game_obj() -> 'GameRunner':
             ai.clear()
             target_character: Character = self.game.get_character(target_name)
             ai.add_task(GoAndKiss(target=target_character))
+
+        def process_kick_person(self, redeem: RewardRedeemedObj):
+            target_name: str = self.normalize_nickname(str(redeem.input))
+            self.validate_interaction_with_other_character(user_name=redeem.user_name, target_name=target_name)
+
+            ai = self.game.get_character_ai(redeem.user_name)
+            self.validate_current_task_not_blocking(ai)
+
+            ai.clear()
+            target_character: Character = self.game.get_character(target_name)
+            ai.add_task(GoAndKick(target=target_character))
+
+        def validate_interaction_with_other_character(self, user_name: str, target_name: str):
+            self.validate_user_character_exists(user_name)
+            self.validate_target_person_exists(target_name)
 
         @staticmethod
         def validate_current_task_not_blocking(ai):

@@ -23,6 +23,7 @@ class Character:
                  horizontal_velocity: float = 0,
                  vertical_velocity: float = 0,
                  ghost_surface: Surface = None,
+                 *_,
                  **__,
                  ):
         self.name: str = name
@@ -42,9 +43,10 @@ class Character:
         self.move_anim_deviation: int = random.randrange(-1, 2)
 
         self.surface: Surface = None
-        self.render_surface()
         self.name_surface: Surface = None
+        self.render_surface()
         self.render_name_surface()
+
         if ghost_surface is None:
             ghost_surface = get_character_ghost(kind=self.kind, size=self.size)
         self.ghost_surface: Surface = ghost_surface
@@ -76,7 +78,7 @@ class Character:
 
     def draw(self, dt: float, time: float):
         position = list(self.position)
-        if self.horizontal_velocity != 0:
+        if self.horizontal_velocity != 0 and not self.is_falling:
             dy = sin(time * 8 + self.move_anim_deviation) * self.h_size * 0.05
             position[1] += dy
         else:

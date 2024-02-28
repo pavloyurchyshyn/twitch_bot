@@ -6,7 +6,7 @@ from typing import Dict, List
 os.environ['VisualPygameOn'] = 'on'
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 import datetime
-from twitchAPI.type import CustomRewardRedemptionStatus as RedeemStatus
+from twitchAPI.type import CustomRewardRedemptionStatus as RedeemStatus, PredictionStatus
 from twitchAPI.twitch import Twitch
 from twitchAPI.object.api import TwitchUser, CustomReward
 from twitchAPI.pubsub import PubSub
@@ -33,8 +33,9 @@ BOT_CHANNEL = os.getenv('TWITCH_BOT_CHANNEL', CONFIG.creds.bot_channel)
 # TODO add message
 USER_SCOPE = [AuthScope.CHANNEL_READ_REDEMPTIONS,
               AuthScope.CHANNEL_MANAGE_REDEMPTIONS,
+              AuthScope.CHANNEL_MANAGE_PREDICTIONS,
               ]
-BOT_SCOPE = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT]
+BOT_SCOPE = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT, ]
 
 BOT_BROWSER_PATH = CONFIG.get('bot_browser_path')
 if BOT_BROWSER_PATH is None:
@@ -280,6 +281,10 @@ class FunBot:
     @property
     def broadcaster_id(self) -> str:
         return self.channel_owner_user.id
+
+    @property
+    def bot_broadcaster_id(self) -> str:
+        return self.bot_user.id
 
 
 def main():
