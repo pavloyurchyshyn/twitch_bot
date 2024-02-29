@@ -125,8 +125,9 @@ def get_game_obj() -> 'GameRunner':
                 process_func(redeem=redeem)
 
         def process_spawn_redeem(self, redeem: RewardRedeemedObj):
-            if redeem.user_name not in self.game.characters:
-                self.game.add_character(redeem.user_name)
+            user_name = self.normalize_nickname(redeem.user_name)
+            if user_name not in self.game.characters:
+                self.game.add_character(user_name)
 
         def process_eyes_recolor_redeem(self, redeem: RewardRedeemedObj):
             self.process_recolor_redeem(redeem, AttrsCons.eyes_color.value)
@@ -212,7 +213,8 @@ def get_game_obj() -> 'GameRunner':
 
         def process_kick_person(self, redeem: RewardRedeemedObj):
             target_name: str = self.normalize_nickname(str(redeem.input))
-            self.validate_interaction_with_other_character(user_name=redeem.user_name, target_name=target_name)
+            user_name = self.normalize_nickname(str(redeem.user_name))
+            self.validate_interaction_with_other_character(user_name=user_name, target_name=target_name)
 
             ai = self.game.get_character_ai(redeem.user_name)
             self.validate_current_task_not_blocking(ai)
@@ -224,9 +226,12 @@ def get_game_obj() -> 'GameRunner':
 
         def process_start_duel(self, redeem: RewardRedeemedObj):
             target_name: str = self.normalize_nickname(str(redeem.input))
-            self.validate_interaction_with_other_character(user_name=redeem.user_name, target_name=target_name)
+            user_name: str = self.normalize_nickname(str(redeem.user_name))
+            if target_name == user_name:
+                raise RedeemError('не можна бити себе! iamvol3U')
+            self.validate_interaction_with_other_character(user_name=user_name, target_name=target_name)
 
-            ai = self.game.get_character_ai(redeem.user_name)
+            ai = self.game.get_character_ai(user_name)
             self.validate_current_task_not_blocking(ai)
 
             target_ai = self.game.get_character_ai(target_name)
@@ -241,7 +246,7 @@ def get_game_obj() -> 'GameRunner':
             elif target_ai.current_task and not target_ai.current_task.skippable:
                 raise RedeemError(f'опонент виконує задачу яку не можна пропустити')
 
-            self.game.start_duel(duelist_1=self.game.get_character(redeem.user_name),
+            self.game.start_duel(duelist_1=self.game.get_character(user_name),
                                  duelist_2=self.game.get_character(target_name))
 
         def validate_interaction_with_other_character(self, user_name: str, target_name: str):
@@ -265,7 +270,7 @@ def get_game_obj() -> 'GameRunner':
         def normalize_nickname(name: str) -> str:
             if name.startswith('@'):
                 name = name.removeprefix('@')
-            return name.strip()
+            return name.strip().lower()
 
     return GameRunner()
 
