@@ -1,20 +1,29 @@
 from math import dist
 from typing import List, Optional, Dict, Callable
-from twitchAPI.type import CustomRewardRedemptionStatus as RedeemStatus, PredictionStatus
+from twitchAPI.type import PredictionStatus
+from pygame import Surface
 
 from logger import LOGGER
 from game_components.events.base import BaseEvent
 from game_components.character.user_character import Character
 from game_components.AI.base import AI, GoTo, IdleWalk
-from game_components.screen import scaled_w, SCREEN_H
+from game_components.AI.go_and_kill import GoAndKill
+from game_components.screen import scaled_w, SCREEN_H, MAIN_DISPLAY
+from game_components.utils import DEFAULT_FONT, load_image
 
-PREPARE_TIME = 10
-DUEL_TIME = 10
+PREPARE_TIME = 60
+DUEL_TIME = 45
+
+try:
+    FLAG_IMG: Surface = load_image('flag.png', size=(50, 100))
+except Exception:
+    FLAG_IMG: Optional[Surface] = None
 
 
 class DuelEvent(BaseEvent):
     name = 'duel'
     is_blocking = True
+    behind = True
 
     def __init__(self, duelist_1: Character, duelist_2: Character,
                  characters_list: List[Character], characters_ai: Dict[str, AI],
@@ -30,10 +39,13 @@ class DuelEvent(BaseEvent):
         self.duelist_2_ai = self.characters_ai[self.duelist_2.name]
         self.duelist_2.restore_hp()
 
-        self.title: str = f'Дуель між {self.duelist_1.name} та {self.duelist_2.name}'
-
         duelist_pos_left = (scaled_w(0.25), SCREEN_H - 5)
         duelist_pos_right = (scaled_w(0.75), SCREEN_H - 5)
+        if FLAG_IMG:
+            self.flag_1_pos = duelist_pos_left[0], SCREEN_H - FLAG_IMG.get_height()
+            self.flag_2_pos = duelist_pos_right[0], SCREEN_H - FLAG_IMG.get_height()
+        else:
+            self.flag_1_pos = self.flag_2_pos = None
 
         self.duelist_1_ai.clear()
         self.duelist_2_ai.clear()
@@ -64,12 +76,17 @@ class DuelEvent(BaseEvent):
                 ai.add_task(GoTo(viewers_pos_right))
 
         self.prepare_timer: float = PREPARE_TIME
+        self.preparing_stage: bool = True
+        self.prepare_stage_text_render_time: int = int(self.prepare_timer)
+        self.prepare_stage_surface: Surface = self.get_preparing_stage_surface()
+
+        self.fight_stage: bool = False
+        self.fight_stage_text_render_time: int = int(self.prepare_timer)
+        self.fight_stage_surface: Surface = self.get_duel_stage_surface()
         self.duel_timer: float = DUEL_TIME
 
-        self.preparing_stage: bool = True
-        self.fight_stage: bool = False
-
     def update(self, dt: float, time: float) -> None:
+        # TODO split to 2 methods
         if self.preparing_stage:
             self.prepare_timer -= dt
             if self.prepare_timer <= 0.:
@@ -78,6 +95,11 @@ class DuelEvent(BaseEvent):
                 LOGGER.info(f'Locked prediction')
                 self.fight_stage = True
                 LOGGER.info(f'Started fight between {self.duelist_1.name} and {self.duelist_2.name}')
+
+                self.duelist_1_ai.clear()
+                self.duelist_1_ai.add_task(GoAndKill(self.duelist_2))
+                self.duelist_2_ai.clear()
+                self.duelist_2_ai.add_task(GoAndKill(self.duelist_1))
         else:
             self.duel_timer -= dt
             if self.duelist_1.dead or self.duelist_2.dead:
@@ -108,8 +130,17 @@ class DuelEvent(BaseEvent):
                 self.is_done = True
 
         if self.is_done:
-            for ai in self.characters_ai.values():
-                ai.add_task(IdleWalk())
+            from game_components.AI.go_and_kiss import GoAndKiss
+
+            self.duelist_1.restore_hp()
+            self.duelist_1_ai.clear()
+            self.duelist_1_ai.add_task(GoAndKiss(self.duelist_2))
+            self.duelist_1_ai.add_task(IdleWalk())
+
+            self.duelist_2.restore_hp()
+            self.duelist_2_ai.clear()
+            self.duelist_2_ai.add_task(GoAndKiss(self.duelist_1))
+            self.duelist_2_ai.add_task(IdleWalk())
 
     def end_prediction(self, winner: str, reason: str = ""):
         self.update_prediction(status=PredictionStatus.RESOLVED, winner=winner, reason=reason)
@@ -121,7 +152,36 @@ class DuelEvent(BaseEvent):
         self.update_prediction(status=PredictionStatus.CANCELED, reason=reason)
 
     def draw(self) -> None:
-        pass
+        if FLAG_IMG:
+            MAIN_DISPLAY.blit(FLAG_IMG, self.flag_1_pos)
+            MAIN_DISPLAY.blit(FLAG_IMG, self.flag_2_pos)
+
+        if self.preparing_stage:
+            # TODO replace by timer check
+            if int(self.prepare_timer) != self.prepare_stage_text_render_time:
+                self.prepare_stage_surface = self.get_preparing_stage_surface()
+                self.prepare_stage_text_render_time = int(self.prepare_timer)
+            pos = scaled_w(0.5) - self.prepare_stage_surface.get_width() // 2, 0
+            MAIN_DISPLAY.blit(self.prepare_stage_surface, pos)
+        else:
+            if int(self.duel_timer) != self.fight_stage_text_render_time:
+                self.fight_stage_text_render_time = int(self.duel_timer)
+                self.fight_stage_surface = self.get_duel_stage_surface()
+
+            pos = scaled_w(0.5) - self.fight_stage_surface.get_width() // 2, 0
+            MAIN_DISPLAY.blit(self.fight_stage_surface, pos)
+
+    def get_preparing_stage_text(self) -> str:
+        return f'Час на ставки - {int(self.prepare_timer)}'
+
+    def get_preparing_stage_surface(self) -> Surface:
+        return DEFAULT_FONT.render(self.get_preparing_stage_text(), 1, 'white', [100, 100, 100])
+
+    def get_duel_stage_text(self) -> str:
+        return f'Duel timer: {int(self.duel_timer)}'
+
+    def get_duel_stage_surface(self) -> Surface:
+        return DEFAULT_FONT.render(self.get_duel_stage_text(), 1, 'white', [100, 100, 100])
 
     @property
     def duelists_are_on_positions(self) -> bool:

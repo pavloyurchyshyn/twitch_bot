@@ -76,7 +76,9 @@ class FunBot:
             self.game_runner.game.end_prediction = self.sync_end_prediction
             self.game_runner.run()
         except Exception as e:
-            LOGGER.warning(e)
+            import traceback
+            print(traceback.format_exc())
+            LOGGER.error(e)
             # await self.chat.send_message(TARGET_CHANNEL, 'Бот впав BibleThump')
         finally:
             if self.current_prediction:
@@ -321,7 +323,8 @@ class FunBot:
                                                          winning_outcome_id=winner_id
                                                          )
                 if status == PredictionStatus.LOCKED:
-                    await self.chat.send_message(TARGET_CHANNEL, f"Час ставок закінчився! {reason}")
+                    # TODO await self.chat.send_message(TARGET_CHANNEL, f"Час ставок закінчився! {reason}")
+                    pass
                 elif status == PredictionStatus.CANCELED and not winner:
                     await self.chat.send_message(TARGET_CHANNEL, f"Предікшн відмінено! {reason}")
             except Exception as e:
@@ -354,7 +357,8 @@ class FunBot:
 def main():
     bot = FunBot()
     asyncio.run(bot.run())
-    bot.game_runner.game.save()
+    if bot.game_runner:
+        bot.game_runner.game.save()
 
 
 if __name__ == '__main__':

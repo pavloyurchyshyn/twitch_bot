@@ -1,12 +1,13 @@
 import random
 from math import sin
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 from pygame import Surface, transform, Vector2, Rect, draw
 
 from game_components.utils import DEFAULT_BACK_FONT
 from game_components.screen import MAIN_DISPLAY
 from game_components.constants import *
 from game_components.sprite_builder import get_character_body_img, recolor_surface, RecolorKeys, get_character_ghost
+from game_components.weapon.base import BaseWeapon
 
 
 # TODO make character ABC
@@ -24,16 +25,19 @@ class Character:
                  horizontal_velocity: float = 0,
                  vertical_velocity: float = 0,
                  ghost_surface: Surface = None,
+                 weapon: Optional[BaseWeapon] = None,
                  *_,
                  **__,
                  ):
-        self.name: str = name
+        self.name: str = name.lower()
         self.kind: str = kind
         self.w_size: int = w_size
         self.h_size: int = h_size
 
         self.health_points: float = health_points
         self.max_health_points: float = max_health_points
+
+        self.weapon: Optional[BaseWeapon] = weapon
 
         self._position: List = list(position)
         self.rect: Rect = Rect(position, self.size)
@@ -81,6 +85,8 @@ class Character:
     def update(self, dt: float, time: float):
         self.fall(dt)
         self.move(dt)
+        if self.weapon:
+            self.weapon.update(dt=dt)
 
     def draw(self, dt: float, time: float):
         position = list(self.position)
@@ -123,6 +129,11 @@ class Character:
             self.alive = False
             self.death_reason = reason
 
+    def heal(self, hp: float):
+        self.health_points += hp
+        if self.health_points > self.max_health_points:
+            self.health_points = self.max_health_points
+
     def move(self, dt: float):
         if self.move_direction or self.horizontal_velocity:
             if self.is_falling and self.horizontal_velocity:
@@ -154,6 +165,10 @@ class Character:
                 self._position[1] = MAIN_DISPLAY.get_height() - self.h_size
                 self.rect.y = self._position[1]
                 self.vertical_velocity = 0
+
+    def push(self, horizontal_velocity: float = 0, vertical_velocity: float = 0):
+        self.horizontal_velocity += horizontal_velocity
+        self.vertical_velocity -= vertical_velocity
 
     @property
     def size(self) -> Tuple[int, int]:
