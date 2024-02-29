@@ -73,7 +73,10 @@ class GoTo(BaseTask):
 
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
         if not character.is_falling:
-            character.move_direction = -1 if self.position[0] < character.position[0] else 1
+            if self.position[0] == character.position[0]:
+                character.move_direction = 0
+            else:
+                character.move_direction = -1 if self.position[0] < character.position[0] else 1
             if character.rect.collidepoint(*self.position):
                 LOGGER.debug(f'Walking for {character.name} to {self.position} is done.')
                 character.stop()
@@ -115,7 +118,8 @@ class IdleWalk(BaseTask):
 class GoToPerson(GoTo):
     name = 'got_to_person'
 
-    def __init__(self, target: Character):
+    def __init__(self, target: Character, wait_for_flying_person: bool = True):
+        self.wait_for_flying_person: bool = wait_for_flying_person
         self.target: Character = target
         super().__init__(tuple(target.position))
 
@@ -127,6 +131,8 @@ class GoToPerson(GoTo):
         elif self.target.rect.colliderect(character.rect):
             character.stop()
             return TaskState.Done
+        elif self.target.rect.bottom < character.rect.y - character.h_size and not self.wait_for_flying_person:
+            return TaskState.Failed
 
         res = super().tick(character=character, dt=dt, time=time)
         if res == TaskState.Done:
