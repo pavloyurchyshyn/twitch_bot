@@ -48,7 +48,10 @@ class Game:
                     self.characters_AI.pop(character.name, None)
                     LOGGER.info(f'{character.name} died')
                     self.add_character_ghost(character)
-                    self.send_msg(f'@{character.name} пагіб iamvol3Ogo ')
+                    death_reason = ''
+                    if character.death_reason:
+                        death_reason = character.death_reason
+                    self.send_msg(f'@{character.name} пагіб iamvol3Ogo {death_reason}')
             except Exception as e:
                 LOGGER.error(f'Failed to update {name}\n{e}')
 
@@ -108,6 +111,7 @@ class Game:
                 save_data = yaml.safe_load(f)
 
             for char_name, char_data in save_data['avatars_data'].items():
+                char_name: str = char_name.strip().lower()
                 self.characters[char_name] = get_character(**char_data)
                 self.add_ai_for(char_name)
 
