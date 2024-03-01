@@ -9,13 +9,15 @@ from game_components.character.user_character import Character
 from game_components.AI.base import AI, GoTo, IdleWalk
 from game_components.AI.go_and_kill import GoAndKill
 from game_components.screen import scaled_w, SCREEN_H, MAIN_DISPLAY
-from game_components.utils import DEFAULT_FONT, load_image
+from game_components.utils import DEFAULT_FONT, load_image, add_outline_to_image
+from game_components.sounds import play_sound
+
 
 PREPARE_TIME = 60
 DUEL_TIME = 45
-
+BATTLE_HORN_SOUND = 'battle_horn.mp3'
 try:
-    FLAG_IMG: Surface = load_image('flag.png', size=(50, 100))
+    FLAG_IMG: Surface = load_image('flag.png', size=(50, 150))
 except Exception:
     FLAG_IMG: Optional[Surface] = None
 
@@ -80,66 +82,75 @@ class DuelEvent(BaseEvent):
         self.prepare_stage_text_render_time: int = int(self.prepare_timer)
         self.prepare_stage_surface: Surface = self.get_preparing_stage_surface()
 
+        self.duel_timer: float = DUEL_TIME
         self.fight_stage: bool = False
         self.fight_stage_text_render_time: int = int(self.prepare_timer)
         self.fight_stage_surface: Surface = self.get_duel_stage_surface()
-        self.duel_timer: float = DUEL_TIME
+
+        self.update_stage: Callable = self.prepare_stage_update
+
+    def prepare_stage_update(self, dt: float):
+        self.prepare_timer -= dt
+        if self.prepare_timer <= 0.:
+            self.preparing_stage = False
+            self.lock_prediction()
+            LOGGER.info(f'Locked prediction')
+            self.fight_stage = True
+            LOGGER.info(f'Started fight between {self.duelist_1.name} and {self.duelist_2.name}')
+
+            self.duelist_1_ai.clear()
+            self.duelist_1_ai.add_task(GoAndKill(self.duelist_2))
+            self.duelist_2_ai.clear()
+            self.duelist_2_ai.add_task(GoAndKill(self.duelist_1))
+            play_sound(BATTLE_HORN_SOUND)
+            self.update_stage = self.update_duel_stage
+
+    def update_duel_stage(self, dt: float):
+        self.duel_timer -= dt
+        if self.duelist_1.dead or self.duelist_2.dead:
+            if self.duelist_1.dead and self.duelist_2.dead:
+                LOGGER.info(f'Duel result: draw between {self.duelist_1.name} and {self.duelist_2.name}')
+                self.cancel_prediction(reason='Нічия!')
+                self.is_done = True
+            elif self.duelist_1.dead:
+                LOGGER.info(f'Duel result: between {self.duelist_1.name} and {self.duelist_2.name}(winner)')
+                self.end_prediction(winner=self.duelist_2.name)
+                self.is_done = True
+            elif self.duelist_2.dead:
+                LOGGER.info(f'Duel result: between {self.duelist_1.name}(winner) and {self.duelist_2.name}')
+                self.end_prediction(winner=self.duelist_1.name)
+                self.is_done = True
+
+        elif self.duel_timer <= 0:
+            if self.duelist_1.health_points == self.duelist_2.health_points:
+                LOGGER.info(f'Duel result: draw between {self.duelist_1.name} and {self.duelist_2.name}')
+                self.cancel_prediction(reason='Нічия!')
+            elif self.duelist_1.health_points < self.duelist_2.health_points:
+                LOGGER.info(f'Duel result: between {self.duelist_1.name} and {self.duelist_2.name}(winner)')
+                self.end_prediction(winner=self.duelist_2.name)
+            else:
+                LOGGER.info(f'Duel result: between {self.duelist_1.name}(winner) and {self.duelist_2.name}')
+                self.end_prediction(winner=self.duelist_1.name)
+
+            self.is_done = True
 
     def update(self, dt: float, time: float) -> None:
-        # TODO split to 2 methods
-        if self.preparing_stage:
-            self.prepare_timer -= dt
-            if self.prepare_timer <= 0.:
-                self.preparing_stage = False
-                self.lock_prediction()
-                LOGGER.info(f'Locked prediction')
-                self.fight_stage = True
-                LOGGER.info(f'Started fight between {self.duelist_1.name} and {self.duelist_2.name}')
-
-                self.duelist_1_ai.clear()
-                self.duelist_1_ai.add_task(GoAndKill(self.duelist_2))
-                self.duelist_2_ai.clear()
-                self.duelist_2_ai.add_task(GoAndKill(self.duelist_1))
-        else:
-            self.duel_timer -= dt
-            if self.duelist_1.dead or self.duelist_2.dead:
-                if self.duelist_1.dead and self.duelist_2.dead:
-                    LOGGER.info(f'Duel result: draw between {self.duelist_1.name} and {self.duelist_2.name}')
-                    self.cancel_prediction(reason='Нічия!')
-                    self.is_done = True
-                elif self.duelist_1.dead:
-                    LOGGER.info(f'Duel result: between {self.duelist_1.name} and {self.duelist_2.name}(winner)')
-                    self.end_prediction(winner=self.duelist_2.name)
-                    self.is_done = True
-                elif self.duelist_2.dead:
-                    LOGGER.info(f'Duel result: between {self.duelist_1.name}(winner) and {self.duelist_2.name}')
-                    self.end_prediction(winner=self.duelist_1.name)
-                    self.is_done = True
-
-            elif self.duel_timer <= 0:
-                if self.duelist_1.health_points == self.duelist_2.health_points:
-                    LOGGER.info(f'Duel result: draw between {self.duelist_1.name} and {self.duelist_2.name}')
-                    self.cancel_prediction(reason='Нічия!')
-                elif self.duelist_1.health_points < self.duelist_2.health_points:
-                    LOGGER.info(f'Duel result: between {self.duelist_1.name} and {self.duelist_2.name}(winner)')
-                    self.end_prediction(winner=self.duelist_2.name)
-                else:
-                    LOGGER.info(f'Duel result: between {self.duelist_1.name}(winner) and {self.duelist_2.name}')
-                    self.end_prediction(winner=self.duelist_1.name)
-
-                self.is_done = True
+        self.update_stage(dt=dt)
 
         if self.is_done:
             from game_components.AI.go_and_kiss import GoAndKiss
 
             self.duelist_1.restore_hp()
             self.duelist_1_ai.clear()
-            self.duelist_1_ai.add_task(GoAndKiss(self.duelist_2))
-            self.duelist_1_ai.add_task(IdleWalk())
 
             self.duelist_2.restore_hp()
             self.duelist_2_ai.clear()
-            self.duelist_2_ai.add_task(GoAndKiss(self.duelist_1))
+
+            if self.duelist_1.alive and self.duelist_2.alive:
+                self.duelist_1_ai.add_task(GoAndKiss(self.duelist_2))
+                self.duelist_2_ai.add_task(GoAndKiss(self.duelist_1))
+
+            self.duelist_1_ai.add_task(IdleWalk())
             self.duelist_2_ai.add_task(IdleWalk())
 
     def end_prediction(self, winner: str, reason: str = ""):
@@ -175,13 +186,13 @@ class DuelEvent(BaseEvent):
         return f'Час на ставки - {int(self.prepare_timer)}'
 
     def get_preparing_stage_surface(self) -> Surface:
-        return DEFAULT_FONT.render(self.get_preparing_stage_text(), 1, 'white', [100, 100, 100])
+        return add_outline_to_image(DEFAULT_FONT.render(self.get_preparing_stage_text(), 1, 'white', [100, 100, 100]))
 
     def get_duel_stage_text(self) -> str:
         return f'Duel timer: {int(self.duel_timer)}'
 
     def get_duel_stage_surface(self) -> Surface:
-        return DEFAULT_FONT.render(self.get_duel_stage_text(), 1, 'white', [100, 100, 100])
+        return add_outline_to_image(DEFAULT_FONT.render(self.get_duel_stage_text(), 1, 'white', [100, 100, 100]))
 
     @property
     def duelists_are_on_positions(self) -> bool:
