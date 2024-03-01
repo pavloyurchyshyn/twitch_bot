@@ -57,34 +57,6 @@ def normalize_color(color) -> Color:
     return Color(list(map(__normalize_color, tuple(color))))
 
 
-def textHollow(font, message, fontcolor):
-    notcolor = [c ^ 0xFF for c in fontcolor]
-    base = font.render(message, 0, fontcolor, notcolor)
-    size = base.get_width() + 2, base.get_height() + 2
-    img = Surface(size, 16)
-    img.fill(notcolor)
-    base.set_colorkey(0)
-    img.blit(base, (0, 0))
-    img.blit(base, (2, 0))
-    img.blit(base, (0, 2))
-    img.blit(base, (2, 2))
-    base.set_colorkey(0)
-    base.set_palette_at(1, notcolor)
-    img.blit(base, (1, 1))
-    img.set_colorkey(notcolor)
-    return img
-
-
-def textOutline(font, message, fontcolor, outlinecolor):
-    base = font.render(message, 0, tuple(Color(fontcolor)))
-    outline = textHollow(font, message, tuple(Color(outlinecolor)))
-    img = Surface(outline.get_size(), 16)
-    img.blit(base, (1, 1))
-    img.blit(outline, (0, 0))
-    img.set_colorkey(0)
-    return img
-
-
 def add_outline_to_image(image: Surface, border_color: tuple = (0, 0, 0)) -> Surface:
     mask = py_mask.from_surface(image)
     result_surface = get_surface(image.get_width() + 4, image.get_height() + 4, transparent=1)
