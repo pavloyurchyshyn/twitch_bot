@@ -46,10 +46,11 @@ def get_game_obj() -> 'GameRunner':
     from game_components.AI.go_and_kick import GoAndKick
     from game_components.errors import RedeemError, ProhibitedColor
     from logger import LOGGER
+    from game_components.utils import add_outline_to_image
 
-    ONLINE_TEXT = DEFAULT_FONT.render('Бот працює', 1, [255, 255, 255], [100, 100, 100])
-    ONLINE_TEXT_POS = list(MAIN_DISPLAY.get_rect().midbottom)
-    ONLINE_TEXT_POS[1] -= ONLINE_TEXT.get_height() - 2
+    ONLINE_TEXT = add_outline_to_image(DEFAULT_FONT.render('Бот працює', 1, [255, 255, 255], [100, 100, 100]))
+    ONLINE_TEXT_POS = list(MAIN_DISPLAY.get_rect().topright)
+    ONLINE_TEXT_POS[0] -= ONLINE_TEXT.get_width()
 
     class GameRunner:
         FPS = 60

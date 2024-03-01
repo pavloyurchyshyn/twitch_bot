@@ -9,7 +9,6 @@ from game_components.screen import MAIN_DISPLAY
 from game_components.character.user_character import Character, CHAR_SIZE
 from game_components.character.fabric import get_character
 
-
 from game_components.events.base import BaseEvent
 from game_components.events.storm import StormEvent
 from game_components.events.duel_event import DuelEvent

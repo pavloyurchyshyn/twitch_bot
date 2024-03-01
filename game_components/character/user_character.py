@@ -8,6 +8,7 @@ from game_components.screen import MAIN_DISPLAY
 from game_components.constants import *
 from game_components.sprite_builder import get_character_body_img, recolor_surface, RecolorKeys, get_character_ghost
 from game_components.weapon.base import BaseWeapon
+from game_components.utils import add_outline_to_image
 
 
 # TODO make character ABC
@@ -79,6 +80,7 @@ class Character:
 
     def render_name_surface(self):
         name_surface = DEFAULT_BACK_FONT.render(self.name, True, 'white')
+        name_surface = add_outline_to_image(name_surface)
         size = name_surface.get_size()
         self.name_surface: Surface = transform.smoothscale(name_surface, [size[0] * 0.75, size[1]])
 
