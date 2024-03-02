@@ -76,8 +76,8 @@ class FunBot:
             self.game_runner.game.end_prediction = self.sync_end_prediction
             self.game_runner.run()
         except Exception as e:
-            import traceback
-            print(traceback.format_exc())
+            # import traceback
+            # print(traceback.format_exc())
             LOGGER.error(e)
             # await self.chat.send_message(TARGET_CHANNEL, 'Бот впав BibleThump')
         finally:
@@ -126,13 +126,19 @@ class FunBot:
 
         # INIT BOT
         bot_twitch = await Twitch(APP_ID, APP_SECRET)
-        bot_auth = UserAuthenticator(bot_twitch, BOT_SCOPE)
-        bot_token, bot_refresh_token = await bot_auth.authenticate(browser_name=BOT_BROWSER_NAME)
-        await bot_twitch.set_user_authentication(bot_token, BOT_SCOPE, bot_refresh_token)
+        auth_helper = UserAuthenticationStorageHelper(bot_twitch, BOT_SCOPE,
+                                                      storage_path='bot_token.json',
+                                                      auth_generator_func=self.bot_auth)
+        await auth_helper.bind()
         self.bot_twitch = bot_twitch
 
         await self.subscribe_to_redemptions()
         await self.connect_co_chat()
+
+    @staticmethod
+    async def bot_auth(twitch, scopes):
+        auth = UserAuthenticator(twitch, scopes=scopes)
+        return await auth.authenticate(browser_name=BOT_BROWSER_NAME)
 
     async def set_up_rewards(self):
         title_key = 'title'
