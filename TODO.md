@@ -40,3 +40,4 @@
   - lowercase nicknames
   - sounds volume
   - text with border
+  - change architecture to load pygame at the end
