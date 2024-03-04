@@ -2,19 +2,20 @@ import random
 
 from game_components.weapon.base import BaseWeapon
 from game_components.character.user_character import Character
-from game_components.constants import HOOK_VELOCITY, KICK_VELOCITY, FIST_HIT_DAMAGE
+from game_components.constants import HOOK_VELOCITY, KICK_VELOCITY, FIST_HIT_DAMAGE, PosType
 from game_components.sounds import play_kick_sound
 
 
 class Fists(BaseWeapon):
-    def __init__(self, damage: float = FIST_HIT_DAMAGE,
+    def __init__(self, position: PosType,
+                 damage: float = FIST_HIT_DAMAGE,
                  hook_power: float = HOOK_VELOCITY,
                  push_power: float = KICK_VELOCITY // 2):
         self.min_damage: float = damage
         self.max_damage: float = damage * 2
         self.hook_power: float = hook_power
         self.push_power: float = push_power
-        super().__init__()
+        super().__init__(position=position)
 
     def use(self, character: Character, target: Character, **kwargs):
         if self.ready_to_use:
@@ -49,4 +50,6 @@ class Fists(BaseWeapon):
         return random.uniform(self.min_damage, self.max_damage)
 
     def draw(self):
-        pass
+        from pygame import draw
+        from game_components.screen import MAIN_DISPLAY
+        draw.circle(MAIN_DISPLAY, (255, 0, 0), self.position, 5)

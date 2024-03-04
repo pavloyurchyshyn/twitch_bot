@@ -1,9 +1,10 @@
 import enum
 from abc import abstractmethod
 import random
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from game_components.character.user_character import Character
 from game_components.screen import scaled_w, SCREEN_H
+from game_components.constants import PosType
 from logger import LOGGER
 
 
@@ -68,11 +69,14 @@ class AI:
 class GoTo(BaseTask):
     name = 'go_to'
 
-    def __init__(self, position: Tuple[int, int]):
-        self.position: Tuple[int, int] = position
+    def __init__(self, position: PosType, look_direction: Optional[int] = None):
+        self.position: PosType = position
+        self.look_direction: Optional[int] = look_direction
 
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
         if not character.is_falling:
+            if self.look_direction is not None:
+                character.look_direction = self.look_direction
             if self.position[0] == character.position[0]:
                 character.move_direction = 0
             else:

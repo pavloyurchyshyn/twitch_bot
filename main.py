@@ -17,7 +17,7 @@ import webbrowser
 
 from game_runner import get_game_obj
 from game_components.errors import RedeemError
-from global_data import Config
+from config import Config
 from redeems import RewardRedeemedObj
 from logger import LOGGER
 
@@ -109,13 +109,11 @@ class FunBot:
                     pass
 
     async def init(self):
-        # INIT USER
         twitch = await Twitch(APP_ID, APP_SECRET)
         auth_helper = UserAuthenticationStorageHelper(twitch, USER_SCOPE)
         await auth_helper.bind()
         self.channel_twitch = twitch
 
-        # collect required users objects
         async for user in twitch.get_users(logins=[TARGET_CHANNEL, BOT_CHANNEL]):
             if user.login == TARGET_CHANNEL:
                 self.channel_owner_user = user
@@ -126,6 +124,9 @@ class FunBot:
 
         # INIT BOT
         bot_twitch = await Twitch(APP_ID, APP_SECRET)
+        # token, refresh_token = await self.bot_auth(bot_twitch, BOT_SCOPE)
+        # await bot_twitch.set_user_authentication(token, BOT_SCOPE, refresh_token)
+        # # TODO fix it
         auth_helper = UserAuthenticationStorageHelper(bot_twitch, BOT_SCOPE,
                                                       storage_path='bot_token.json',
                                                       auth_generator_func=self.bot_auth)
@@ -225,14 +226,12 @@ class FunBot:
         await self.channel_twitch.delete_custom_reward(broadcaster_id=self.broadcaster_id, reward_id=reward_id)
 
     async def subscribe_to_redemptions(self):
-        # LISTEN TO EVENTS
         self.pubsub = pubsub = PubSub(self.channel_twitch)
         pub_uuid = await pubsub.listen_channel_points(self.channel_owner_user.id, self.process_redeem_event)
         self.listen_channel_points_uuid = pub_uuid
         pubsub.start()
 
     async def connect_co_chat(self):
-        # READ CHAT
         self.chat = chat = await Chat(self.bot_twitch)
         chat.register_event(ChatEvent.READY, self.ready_event)
         chat.register_command('стоп_бот', self.stop_bot_command)
@@ -246,14 +245,15 @@ class FunBot:
     async def stop_bot_command(self, cmd: ChatCommand):
         if cmd.user.name == TARGET_CHANNEL:
             self.game_runner.is_running = False
-            await cmd.send(f'Бот йде ґеть! BibleThump ')
+            await self.chat.send_message(TARGET_CHANNEL, 'Бот йде ґеть! BibleThump ')
         else:
-            await cmd.send(f'@{cmd.user.name}, в тебе немає влади! iamvol3U ')
+            await self.chat.send_message(TARGET_CHANNEL, f'@{cmd.user.name}, в тебе немає влади! iamvol3U ')
 
     async def process_redeem_event(self, _, request_payload):
         redeem_obj = RewardRedeemedObj(request_payload)
         fulfilled = False
         try:
+            # TODO redeems to ignore
             self.game_runner.process_redeem(redeem_obj)
         except RedeemError as e:
             text = f'@{redeem_obj.user_name}, не вийшло застосувати "{redeem_obj.name}", бо {e}'
@@ -293,6 +293,9 @@ class FunBot:
                 await asyncio.sleep(1)
         except Exception as e:
             LOGGER.error(f'Messages thread is dead\n{e}')
+
+    async def async_send_message(self, msg: str):
+        await self.chat.send_message(TARGET_CHANNEL, msg)
 
     def sync_create_predict(self, title: str, outcomes: List[str], time_to_predict: int = 60):
         start_new_thread(asyncio.run, (self.create_prediction(title=title,

@@ -31,5 +31,5 @@ class BaseEvent:
     def draw(self) -> None:
         raise NotImplementedError
 
-    def cancel(self):
+    def finish(self):
         self.is_done = True

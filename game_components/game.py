@@ -8,16 +8,19 @@ from game_components.AI.base import AI
 from game_components.screen import MAIN_DISPLAY
 from game_components.character.user_character import Character, CHAR_SIZE
 from game_components.character.fabric import get_character
+from game_components.constants import PosType
 
 from game_components.events.base import BaseEvent
 from game_components.events.storm import StormEvent
 from game_components.events.duel_event import DuelEvent
 from game_components.events.character_died import CharacterGhost
+from game_components.singletone_decorator import single_tone_decorator
 
 SAVE_FILE_NAME = 'save.yaml'
 SAVE_FILE_BACKUP_NAME = 'save_backup.yaml'
 
 
+@single_tone_decorator
 class Game:
     def __init__(self):
         self.characters: Dict[str, Character] = {}
@@ -82,7 +85,7 @@ class Game:
             return None
 
     def save(self):
-        save = {'avatars_data': {}}
+        save = {'avatars_data': {}, 'users_data': {}}
         try:
             for char in self.characters.values():
                 save['avatars_data'][char.name] = char.get_dict()
@@ -105,16 +108,30 @@ class Game:
                 LOGGER.info(f'Rewrote {SAVE_FILE_BACKUP_NAME}')
 
     def load(self):
-        if pathlib.Path(SAVE_FILE_NAME).exists():
-            with open(SAVE_FILE_NAME) as f:
-                save_data = yaml.safe_load(f)
+        save_data = {}
+        try:
+            if pathlib.Path(SAVE_FILE_NAME).exists():
+                with open(SAVE_FILE_NAME) as f:
+                    save_data = yaml.safe_load(f)
+                LOGGER.info(f'Loaded save {SAVE_FILE_NAME}')
+            else:
+                LOGGER.warning(f'Save file {SAVE_FILE_BACKUP_NAME} not found')
+                raise FileNotFoundError
+        except Exception as e:
+            LOGGER.warning(e)
+            if pathlib.Path(SAVE_FILE_BACKUP_NAME).exists():
+                with open(SAVE_FILE_BACKUP_NAME) as f:
+                    save_data = yaml.safe_load(f)
+                LOGGER.info(f'Loaded save {SAVE_FILE_BACKUP_NAME}')
 
-            for char_name, char_data in save_data['avatars_data'].items():
+            else:
+                LOGGER.warning(f'Save file {SAVE_FILE_BACKUP_NAME} not found')
+
+        finally:
+            for char_name, char_data in save_data.get('avatars_data', {}).items():
                 char_name: str = char_name.strip().lower()
                 self.characters[char_name] = get_character(**char_data)
                 self.add_ai_for(char_name)
-
-            LOGGER.info(f'Loaded save {SAVE_FILE_NAME}')
 
     def make_storm(self):
         self.add_event(StormEvent(self.get_characters_list()))
@@ -156,7 +173,7 @@ class Game:
         return list(self.characters.values())
 
     @staticmethod
-    def get_random_spawn_position() -> Tuple[int, int]:
+    def get_random_spawn_position() -> PosType:
         x_pos = random.randint(0, MAIN_DISPLAY.get_width() - CHAR_SIZE)
         y_pos = random.randint(CHAR_SIZE, MAIN_DISPLAY.get_height() - CHAR_SIZE)
         return x_pos, y_pos

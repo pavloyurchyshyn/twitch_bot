@@ -1,5 +1,7 @@
-from pygame import Color
 import enum
+from typing import Tuple
+
+PosType = Tuple[int, int]
 
 MOVE_SPEED = 100
 FALL_SPEED = 100
@@ -10,14 +12,14 @@ KISS_HEAL_VALUE = 10
 KICK_VELOCITY = 200
 HOOK_VELOCITY = 100
 FALLING_RESIST = 0.3
-DEFAULT_BODY_COLOR = Color('grey')
-DEFAULT_EYES_COLOR = Color('black')
+DEFAULT_BODY_COLOR = (100, 100, 100)
+DEFAULT_EYES_COLOR = (0, 0, 0)
 DEFAULT_HP = 100
 
 HP_BAR_W = CHAR_SIZE // 2
 HP_BAR_H = 5
-HP_BAR_COLOR = Color('white')
-HP_BAR_BORDER_COLOR = Color(90, 90, 90)
+HP_BAR_COLOR = (255, 255, 255)
+HP_BAR_BORDER_COLOR = (90, 90, 90)
 
 KICK_SOUND = '8bit_kick.mp3'
 KISS_SOUND = 'kiss.mp3'

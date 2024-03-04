@@ -22,6 +22,8 @@ def get_surface(h_size, v_size=None, transparent: (bool, int) = 0, flags=0, colo
 
 DEFAULT_FONT = font.SysFont('Arial', scaled_w(0.01))
 DEFAULT_BACK_FONT = font.SysFont('Arial', scaled_w(0.015), bold=True, italic=True)
+FONT_25_px = font.SysFont('Arial', 25, bold=True, italic=True)
+FONT_35_px = font.SysFont('Arial', 35, bold=True, italic=True)
 
 
 def load_image(path: str, size: (int, int) = None, smooth_scale=False) -> surface.Surface:

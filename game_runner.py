@@ -126,7 +126,7 @@ def get_game_obj() -> 'GameRunner':
                 process_func(redeem=redeem)
 
         def process_spawn_redeem(self, redeem: RewardRedeemedObj):
-            user_name = self.normalize_nickname(redeem.user_name)
+            user_name = redeem.user_name
             if user_name not in self.game.characters:
                 self.game.add_character(user_name)
 
@@ -190,6 +190,8 @@ def get_game_obj() -> 'GameRunner':
                 raise RedeemError('триває інший івент')
 
         def process_walk_around(self, redeem: RewardRedeemedObj):
+            if self.game.check_if_any_event_is_blocking():
+                return
             ai = self.game.characters_AI.get(redeem.user_name)
             if ai is None:
                 self.game.add_ai_for(redeem.user_name)
@@ -201,7 +203,9 @@ def get_game_obj() -> 'GameRunner':
                 raise RedeemError(f'Покищо персонаж робить {ai.current_task.name}')
 
         def process_kiss_person(self, redeem: RewardRedeemedObj):
-            target_name: str = self.normalize_nickname(str(redeem.input))
+            if self.game.check_if_any_event_is_blocking():
+                return
+            target_name: str = redeem.normalize_nickname(str(redeem.input))
             self.validate_interaction_with_other_character(user_name=redeem.user_name, target_name=target_name)
 
             ai = self.game.get_character_ai(redeem.user_name)
@@ -213,8 +217,10 @@ def get_game_obj() -> 'GameRunner':
             ai.add_task(GoAndKiss(target=target_character))
 
         def process_kick_person(self, redeem: RewardRedeemedObj):
-            target_name: str = self.normalize_nickname(str(redeem.input))
-            user_name = self.normalize_nickname(str(redeem.user_name))
+            if self.game.check_if_any_event_is_blocking():
+                return
+            target_name: str = redeem.normalize_nickname(str(redeem.input))
+            user_name = redeem.user_name
             self.validate_interaction_with_other_character(user_name=user_name, target_name=target_name)
 
             ai = self.game.get_character_ai(redeem.user_name)
@@ -226,8 +232,8 @@ def get_game_obj() -> 'GameRunner':
             ai.add_task(GoAndKick(target=target_character))
 
         def process_start_duel(self, redeem: RewardRedeemedObj):
-            target_name: str = self.normalize_nickname(str(redeem.input))
-            user_name: str = self.normalize_nickname(str(redeem.user_name))
+            target_name: str = redeem.normalize_nickname(str(redeem.input))
+            user_name: str = str(redeem.user_name)
             if target_name == user_name:
                 raise RedeemError('не можна бити себе! iamvol3U')
             self.validate_interaction_with_other_character(user_name=user_name, target_name=target_name)
@@ -261,17 +267,11 @@ def get_game_obj() -> 'GameRunner':
 
         def validate_user_character_exists(self, name: str):
             if name not in self.game.characters:
-                raise RedeemError(f'твій персонаж не існує. Потрібно спочатку створити.')
+                raise RedeemError(f'ТВІЙ персонаж не існує. Потрібно спочатку створити.')
 
         def validate_target_person_exists(self, name: str):
             if name not in self.game.characters:
                 raise RedeemError(f"персонаж з ім'ям {name} не існує")
-
-        @staticmethod
-        def normalize_nickname(name: str) -> str:
-            if name.startswith('@'):
-                name = name.removeprefix('@')
-            return name.strip().lower()
 
     return GameRunner()
 

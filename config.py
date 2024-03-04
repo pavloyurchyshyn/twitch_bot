@@ -3,6 +3,8 @@ import os
 import yaml
 
 from logger import LOGGER
+from game_components.singletone_decorator import single_tone_decorator
+
 CONFIG_PATH = 'config.yaml'
 
 
@@ -13,21 +15,8 @@ def load_yaml_config(file: os.PathLike) -> dict:
         return data
 
 
-def single_tone_decorator(cls):
-    memory = {}
-
-    def wrapper(**kwargs):
-        if cls.__name__ not in memory:
-            memory[cls.__name__] = cls(**kwargs)
-
-        return memory[cls.__name__]
-
-    return wrapper
-
-
-@single_tone_decorator
-class Config(dict):
-    file: str = CONFIG_PATH
+class BaseConfig(dict):
+    file: str
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -62,3 +51,8 @@ class Config(dict):
 
     def __str__(self):
         return str(self)
+
+
+@single_tone_decorator
+class Config(BaseConfig):
+    file: str = CONFIG_PATH

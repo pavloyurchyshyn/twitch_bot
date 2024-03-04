@@ -1,16 +1,17 @@
-from typing import Optional, Tuple
+from typing import Optional
 from pygame import Surface
 import math
 
 from game_components.events.base import BaseEvent
 from game_components.screen import MAIN_DISPLAY, is_rect_out_of_screen
+from game_components.constants import PosType
 
 
 class CharacterGhost(BaseEvent):
     name: str = 'character_ghost'
     SPEED = -50
 
-    def __init__(self, position: Tuple[int, int], ghost_surface: Surface, name_surface: Optional[Surface] = None):
+    def __init__(self, position: PosType, ghost_surface: Surface, name_surface: Optional[Surface] = None):
         super().__init__(characters_list=[], characters_ai={})
         self.surface_position: list = list(position)
         self.ghost_surface: Surface = ghost_surface

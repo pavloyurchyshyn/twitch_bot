@@ -1,7 +1,7 @@
 import random
 from math import sin
 from typing import Tuple, List, Optional
-from pygame import Surface, transform, Vector2, Rect, draw
+from pygame import Surface, transform, Color, Rect, draw
 
 from game_components.utils import DEFAULT_BACK_FONT
 from game_components.screen import MAIN_DISPLAY
@@ -15,7 +15,7 @@ from game_components.utils import add_outline_to_image
 class Character:
     attrs_const = AttrsCons
 
-    def __init__(self, name: str, position: Tuple[int, int],
+    def __init__(self, name: str, position: PosType,
                  kind: str,
                  w_size: int = CHAR_SIZE, h_size: int = CHAR_SIZE,
                  speed: float = MOVE_SPEED, move_direction: int = 1,
@@ -34,6 +34,9 @@ class Character:
         self.kind: str = kind
         self.w_size: int = w_size
         self.h_size: int = h_size
+
+        self.look_direction: int = 1
+        # TODO block view direction change
 
         self.health_points: float = health_points
         self.max_health_points: float = max_health_points
@@ -88,7 +91,7 @@ class Character:
         self.fall(dt)
         self.move(dt)
         if self.weapon:
-            self.weapon.update(dt=dt)
+            self.weapon.update(dt=dt, position=self.rect.midright if self.look_direction == 1 else self.rect.midleft)
 
     def draw(self, dt: float, time: float):
         position = list(self.position)
@@ -98,14 +101,15 @@ class Character:
         else:
             dy = 0
 
-        if self.horizontal_velocity > 0:
+        if self.look_direction > 0:
             MAIN_DISPLAY.blit(transform.flip(self.surface, True, False), position)
         else:
             MAIN_DISPLAY.blit(self.surface, position)
 
         self.draw_name(dy)
         self.draw_hp_bar(dy)
-        # draw.rect(MAIN_DISPLAY, 'red', self.rect, 3)
+        if self.weapon:
+            self.weapon.draw()
 
     def draw_name(self, dy: int):
         name_pos = self.get_name_position(dy=dy)
@@ -144,7 +148,9 @@ class Character:
             elif not self.is_falling:
                 self.horizontal_velocity = self.move_direction * self.speed
 
+            dx = self.horizontal_velocity * dt
             self._position[0] += self.horizontal_velocity * dt
+            self.look_direction = -1 if dx < 0 else 1
             self.rect.x = self._position[0]
 
             if self.rect.x > (MAIN_DISPLAY.get_width() - self.w_size):
@@ -156,7 +162,8 @@ class Character:
 
     def fall(self, dt):
         if self.vertical_velocity or self.is_falling:
-            self.rect.y += self.vertical_velocity * dt
+            self._position[1] += self.vertical_velocity * dt
+            self.rect.y = self._position[1]
             self.vertical_velocity += FALL_SPEED * dt
 
             if self.rect.y < - self.h_size * 2:
@@ -173,12 +180,12 @@ class Character:
         self.vertical_velocity -= vertical_velocity
 
     @property
-    def size(self) -> Tuple[int, int]:
+    def size(self) -> PosType:
         return self.w_size, self.h_size
 
     @property
     def is_falling(self) -> bool:
-        return self.rect.y < MAIN_DISPLAY.get_height() - self.h_size
+        return self.rect.y < MAIN_DISPLAY.get_height() - self.h_size - 1
 
     def get_dict(self) -> dict:
         data = {attr_name.value: getattr(self, attr_name.value) for attr_name in AttrsCons}
@@ -190,7 +197,7 @@ class Character:
     def stop(self):
         self.move_direction = 0
 
-    def get_center(self) -> Tuple[int, int]:
+    def get_center(self) -> PosType:
         return self.rect.center
 
     def restore_hp(self):
@@ -201,14 +208,14 @@ class Character:
         return not self.alive
 
     @property
-    def position(self) -> Tuple[int, int]:
+    def position(self) -> PosType:
         return self.rect.topleft
 
-    def on_position(self, position: Tuple[int, int]) -> bool:
+    def on_position(self, position: PosType) -> bool:
         return self.rect.collidepoint(position)
 
     @position.setter
-    def position(self, position: Tuple[int, int]):
+    def position(self, position: PosType):
         self._position[0] = position[0]
         self._position[1] = position[1]
         self.rect.x, self.rect.y = position

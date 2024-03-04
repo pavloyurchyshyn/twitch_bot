@@ -8,7 +8,7 @@ class RewardRedeemedObj:
         redemption = payload['data']['redemption']
         self.name: str = redemption['reward']['title'].lower()
         self.input: str = redemption.get('user_input')
-        self.user_name: str = redemption['user']['display_name']
+        self.user_name: str = self.normalize_nickname(redemption['user']['display_name'])
         self.user_id: str = redemption['user']['id']
         self.id = redemption['id']
         self.reward_id = redemption['reward']['id']
@@ -16,3 +16,10 @@ class RewardRedeemedObj:
         self.skip_queue: bool = redemption['reward']['should_redemptions_skip_request_queue']
 
         self.fulfill_now: bool = True
+
+    @staticmethod
+    def normalize_nickname(name: str) -> str:
+        name = str(name)
+        if name.startswith('@'):
+            name = name.removeprefix('@')
+        return name.strip().lower()
