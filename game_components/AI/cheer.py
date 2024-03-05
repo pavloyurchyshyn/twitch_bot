@@ -15,7 +15,7 @@ class Cheer(BaseTask):
         self.jump_cd: int = 0
 
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
-        character.look_direction = self.direction_to_look
+        character.set_look_direction(self.direction_to_look)
 
         if not character.is_falling and self.jump_cd < time:
             character.push(vertical_velocity=JUMP_VELOCITY * random.uniform(0.1, 1),

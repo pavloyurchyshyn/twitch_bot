@@ -1,6 +1,6 @@
 import random
 from math import sin
-from typing import Tuple, List, Optional
+from typing import List, Optional, Union
 from pygame import Surface, transform, Color, Rect, draw
 
 from game_components.utils import DEFAULT_BACK_FONT
@@ -150,7 +150,7 @@ class Character:
 
             dx = self.horizontal_velocity * dt
             self._position[0] += self.horizontal_velocity * dt
-            self.look_direction = -1 if dx < 0 else 1
+            self.set_look_direction(dx)
             self.rect.x = self._position[0]
 
             if self.rect.x > (MAIN_DISPLAY.get_width() - self.w_size):
@@ -178,6 +178,9 @@ class Character:
     def push(self, horizontal_velocity: float = 0, vertical_velocity: float = 0):
         self.horizontal_velocity += horizontal_velocity
         self.vertical_velocity -= vertical_velocity
+
+    def set_look_direction(self, direction: Union[int, float]) -> None:
+        self.look_direction = -1 if direction < 0 else 1
 
     @property
     def size(self) -> PosType:
@@ -219,3 +222,11 @@ class Character:
         self._position[0] = position[0]
         self._position[1] = position[1]
         self.rect.x, self.rect.y = position
+
+    @property
+    def x(self) -> int:
+        return self.position[0]
+
+    @property
+    def y(self) -> int:
+        return self.position[1]

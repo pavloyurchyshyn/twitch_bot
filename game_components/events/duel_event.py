@@ -17,6 +17,7 @@ from game_components.sounds import play_sound
 PREPARE_TIME = 60
 DUEL_TIME = 45
 BATTLE_HORN_SOUND = 'battle_horn.mp3'
+BATTLE_END_SOUND = 'fanfare.mp3'
 try:
     FLAG_IMG: Surface = load_image('flag.png', size=(50, 150))
 except Exception:
@@ -174,6 +175,7 @@ class DuelEvent(BaseEvent):
                     if self.winner:
                         ai.add_task(GoAndKiss(self.winner))
                     ai.add_task(IdleWalk())
+            play_sound(BATTLE_END_SOUND)
 
     def end_prediction(self, winner: str, reason: str = ""):
         self.update_prediction(status=PredictionStatus.RESOLVED, winner=winner, reason=reason)

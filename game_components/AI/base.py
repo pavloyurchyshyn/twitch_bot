@@ -75,8 +75,6 @@ class GoTo(BaseTask):
 
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
         if not character.is_falling:
-            if self.look_direction is not None:
-                character.look_direction = self.look_direction
             if self.position[0] == character.position[0]:
                 character.move_direction = 0
             else:
@@ -84,7 +82,10 @@ class GoTo(BaseTask):
             if character.rect.collidepoint(*self.position):
                 LOGGER.debug(f'Walking for {character.name} to {self.position} is done.')
                 character.stop()
+                if self.look_direction is not None:
+                    character.set_look_direction(self.look_direction)
                 return TaskState.Done
+
         return TaskState.InProgress
 
 

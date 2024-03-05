@@ -4,6 +4,7 @@ from game_components.weapon.base import BaseWeapon
 from game_components.character.user_character import Character
 from game_components.constants import HOOK_VELOCITY, KICK_VELOCITY, FIST_HIT_DAMAGE, PosType
 from game_components.sounds import play_kick_sound
+from game_components.events.hit_effect import HitVisualEffect
 
 
 class Fists(BaseWeapon):
@@ -27,7 +28,13 @@ class Fists(BaseWeapon):
                 self.simple_hit(character=character, target=target)
             else:
                 self.throw_hit(character=character, target=target)
-
+            if target.x < character.x:
+                direction = -1
+                position = random.choice((target.rect.midright, target.rect.topright, target.rect.bottomright))
+            else:
+                direction = 1
+                position = random.choice((target.rect.midleft, target.rect.topleft, target.rect.bottomleft))
+            HitVisualEffect(position, direction=direction)
             play_kick_sound()
             self.set_cooldown()
 
