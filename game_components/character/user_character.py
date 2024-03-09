@@ -189,8 +189,8 @@ class Character:
             self.rect.y = self._position[1]
             self.vertical_velocity += FALL_SPEED * dt
 
-            if self.rect.y < - self.h_size * 2:
-                self._position[1] -= self.h_size * 2
+            if self.rect.y < -(self.h_size * 2):
+                self._position[1] = -(self.h_size * 2)
                 self.rect.y = self._position[1]
                 self.vertical_velocity = 0
             elif self.rect.y > MAIN_DISPLAY.get_height() - self.h_size:
@@ -222,13 +222,6 @@ class Character:
     @property
     def hands_endpoint(self) -> PosType:
         return self.rect.midright if self.look_direction > 0 else self.rect.midleft
-
-    def get_dict(self) -> dict:
-        data = {attr_name.value: getattr(self, attr_name.value) for attr_name in AttrsCons}
-        data[AttrsCons.position.value] = tuple(data[AttrsCons.position.value])
-        data[AttrsCons.body_color.value] = tuple(data[AttrsCons.body_color.value])
-        data[AttrsCons.eyes_color.value] = tuple(data[AttrsCons.eyes_color.value])
-        return data
 
     def stop(self):
         self.move_direction = 0
