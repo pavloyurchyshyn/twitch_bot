@@ -39,3 +39,7 @@ class AttrsCons(enum.Enum):
     health_points = 'health_points'
     kind = 'kind'
     max_health_points = 'max_health_points'
+
+    @classmethod
+    def get_person_const(cls) -> tuple:
+        return cls.w_size, cls.h_size, cls.max_health_points, cls.kind, cls.speed, cls.body_color, cls.eyes_color

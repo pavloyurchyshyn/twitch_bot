@@ -1,4 +1,3 @@
-import yaml
 import pathlib
 import random
 from typing import Dict, Tuple, Optional, List, Callable
@@ -17,9 +16,8 @@ from game_components.events.duel_event import DuelEvent
 from game_components.events.character_died import CharacterGhost
 from game_components.events.zombies_event import ZombieEvent
 from game_components.singletone_decorator import single_tone_decorator
-
-SAVE_FILE_NAME = 'save.yaml'
-SAVE_FILE_BACKUP_NAME = 'save_backup.yaml'
+from game_components.save_functions import *
+from game_components.save_functions import add_1_to_user_death_count
 
 
 @single_tone_decorator
@@ -56,6 +54,7 @@ class Game:
                     if character.death_reason:
                         death_reason = character.death_reason
                     self.send_msg(f'@{character.name} пагіб iamvol3Ogo {death_reason}')
+                    add_1_to_user_death_count(character_uid=name, save_file=SAVE_FILE_NAME)
             except Exception as e:
                 LOGGER.error(f'Failed to update {name}\n{e}')
 
@@ -71,8 +70,12 @@ class Game:
         return self.characters.get(name)
 
     def add_character(self, name: str, **kwargs):
+
         position = kwargs.pop(Character.attrs_const.position, self.get_random_spawn_position())
-        self.characters[name] = get_character(name=name, position=position)
+        person_data = get_character_person_attrs(name)
+        kwargs.update(person_data)
+
+        self.characters[name] = get_character(name=name, position=position, **kwargs)
         self.add_ai_for(name, character=self.characters[name])
 
     def add_ai_for(self, name: str, character: Character = None):
@@ -88,13 +91,12 @@ class Game:
             return None
 
     def save(self):
-        save = {'avatars_data': {}, 'users_data': {}}
+        save = get_save_template()
         try:
-            for char in self.characters.values():
-                save['avatars_data'][char.name] = char.get_dict()
+            for uid, char in self.characters.items():
+                save[SaveConst.avatars_data][uid] = get_character_dict(char)
 
-            with open(SAVE_FILE_NAME, 'w') as f:
-                yaml.safe_dump(save, f, sort_keys=False)
+            save_into(data=save, save_file=SAVE_FILE_NAME)
 
             LOGGER.info(f'Updated save {SAVE_FILE_NAME}')
         except Exception as e:
@@ -114,8 +116,7 @@ class Game:
         save_data = {}
         try:
             if pathlib.Path(SAVE_FILE_NAME).exists():
-                with open(SAVE_FILE_NAME) as f:
-                    save_data = yaml.safe_load(f)
+                save_data = load_data(SAVE_FILE_NAME)
                 LOGGER.info(f'Loaded save {SAVE_FILE_NAME}')
             else:
                 LOGGER.warning(f'Save file {SAVE_FILE_BACKUP_NAME} not found')
@@ -123,15 +124,13 @@ class Game:
         except Exception as e:
             LOGGER.warning(e)
             if pathlib.Path(SAVE_FILE_BACKUP_NAME).exists():
-                with open(SAVE_FILE_BACKUP_NAME) as f:
-                    save_data = yaml.safe_load(f)
+                save_data = load_data(SAVE_FILE_BACKUP_NAME)
                 LOGGER.info(f'Loaded save {SAVE_FILE_BACKUP_NAME}')
-
             else:
                 LOGGER.warning(f'Save file {SAVE_FILE_BACKUP_NAME} not found')
 
         finally:
-            for char_name, char_data in save_data.get('avatars_data', {}).items():
+            for char_name, char_data in save_data.get(SaveConst.avatars_data, {}).items():
                 char_name: str = char_name.strip().lower()
                 character: Character = get_character(**char_data)
                 self.characters[char_name] = character
@@ -146,7 +145,7 @@ class Game:
                                           ghost_surface=character.ghost_surface,
                                           name_surface=character.name_surface))
         except Exception as _:
-            LOGGER.error(f'Failed to create ghost for {character.get_dict()}')
+            LOGGER.error(f'Failed to create ghost for {get_character_dict(character)}')
 
     def add_event(self, event: BaseEvent):
         self.events.append(event)

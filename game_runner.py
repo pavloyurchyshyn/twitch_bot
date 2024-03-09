@@ -52,6 +52,7 @@ def get_game_obj() -> 'GameRunner':
     from game_components.AI.go_and_kick import GoAndKick
     from game_components.errors import RedeemError, ProhibitedColor
     from game_components.utils import add_outline_to_image, DEFAULT_FONT, normalize_color
+    from game_components.save_functions import save_character_attr
 
     from logger import LOGGER
 
@@ -152,12 +153,14 @@ def get_game_obj() -> 'GameRunner':
                     color = normalize_color(tuple(map(int, re_res.groups())))
 
                 color = pygame.Color(color)
+
             except ProhibitedColor:
                 raise RedeemError(f'({redeem.input}) це заборонене значення кольору')
             except Exception:
                 raise RedeemError(f'({redeem.input}) це не значення кольору')
             else:
                 if character := self.game.get_character(redeem.user_name):
+                    save_character_attr(redeem.user_name, attr=attr, value=tuple(color))
                     setattr(character, attr, color)
                     character.render_surface()
 
@@ -238,6 +241,7 @@ def get_game_obj() -> 'GameRunner':
                 ai.finish_current_task()
             target_character: Character = self.game.get_character(target_name)
             ai.add_task(GoAndKick(target=target_character))
+
         # TODO
         def process_zombie_attack(self, redeem: RewardRedeemedObj):
             self.validate_blocking_event(event_name=redeem.name)
@@ -296,4 +300,9 @@ def get_game_obj() -> 'GameRunner':
 if __name__ == '__main__':
     g = get_game_obj()
     g.game.add_character('Dummy')
-    g.run()
+    g.game.load()
+    try:
+        g.run()
+    finally:
+        pass
+        # g.game.save()
