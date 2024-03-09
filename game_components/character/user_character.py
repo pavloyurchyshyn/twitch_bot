@@ -36,18 +36,19 @@ class Character:
         self.name: str = name.lower()
         self._draw_name_flag: bool = draw_name
         self.kind: str = kind
+
         self.w_size: int = w_size
         self.h_size: int = h_size
+        self._position: List = list(position)
+        self.rotation_speed: float = 0
+        self.angle: float = 0
 
         self.look_direction: int = 1
-        # TODO block view direction change
-
         self.max_health_points: float = max_health_points
         self.health_points: float = max_health_points if health_points is None else health_points
 
         self.weapon: Optional[BaseWeapon] = weapon
 
-        self._position: List = list(position)
         self.rect: Rect = Rect(position, self.size)
         if move_direction is None:
             move_direction = random.randint(-1, 1)
@@ -97,21 +98,34 @@ class Character:
     def update(self, dt: float, time: float):
         self.fall(dt)
         self.move(dt)
+
+        if self.on_the_ground:
+            self.angle = 0
+            # self.rotation_speed = 0
+        else:
+            self.angle += self.rotation_speed
+
         if self.weapon:
-            self.weapon.update(dt=dt, position=self.rect.midright if self.look_direction > 0 else self.rect.midleft)
+            self.weapon.update(dt=dt, position=self.hands_endpoint)
 
     def draw(self, dt: float, time: float):
-        position = list(self.position)
+        surface = transform.rotate(self.surface, self.angle)
+
+        position = list(self.rect.center)
         if self.horizontal_velocity != 0 and not self.is_falling:
             dy = sin(time * 8 + self.move_anim_deviation) * self.h_size * 0.05
             position[1] += dy
         else:
             dy = 0
+        dx = -self.surface.get_width() // 2
+
+        position[0] += dx
+        position[1] += dy - self.surface.get_height() // 2
 
         if self.look_direction > 0:
-            MAIN_DISPLAY.blit(transform.flip(self.surface, True, False), position)
-        else:
-            MAIN_DISPLAY.blit(self.surface, position)
+            surface = transform.flip(surface, True, False)
+
+        MAIN_DISPLAY.blit(surface, position)
 
         if self._draw_name_flag:
             self.draw_name(dy)
@@ -124,8 +138,9 @@ class Character:
         MAIN_DISPLAY.blit(self.name_surface, name_pos)
 
     def get_name_position(self, dy: float = 0) -> Tuple[float, float]:
-        x = self.position[0] - (self.name_surface.get_width() - self.w_size) // 2
-        y = self.position[1] - self.name_surface.get_height() + dy
+        center = self.rect.midtop
+        x = center[0] - self.name_surface.get_width() // 2
+        y = center[1] - self.name_surface.get_height() + dy
         return x, y
 
     def draw_hp_bar(self, dy: int):
@@ -199,6 +214,14 @@ class Character:
     @property
     def is_falling(self) -> bool:
         return self.rect.y < MAIN_DISPLAY.get_height() - self.h_size - 1
+
+    @property
+    def on_the_ground(self) -> bool:
+        return not self.is_falling
+
+    @property
+    def hands_endpoint(self) -> PosType:
+        return self.rect.midright if self.look_direction > 0 else self.rect.midleft
 
     def get_dict(self) -> dict:
         data = {attr_name.value: getattr(self, attr_name.value) for attr_name in AttrsCons}
