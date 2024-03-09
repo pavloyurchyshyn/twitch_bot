@@ -12,10 +12,14 @@ class BaseEvent:
     blocked_redeems: tuple = ()
     name: str
 
-    def __init__(self, characters_list: List[Character], characters_ai: Dict[str, AI]):
-        self.characters: List[Character] = characters_list
+    def __init__(self, characters_dict: Dict[str, Character], characters_ai: Dict[str, AI]):
+        self.characters_dict: Dict[str, Character] = characters_dict
         self.characters_ai: Dict[str, AI] = characters_ai
         self.is_done: bool = False
+
+    @property
+    def characters(self) -> List[Character]:
+        return list(self.characters_dict.values())
 
     def get_random_character(self) -> Optional[Character]:
         if self.characters:

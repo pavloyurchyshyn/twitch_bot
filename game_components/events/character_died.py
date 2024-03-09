@@ -12,7 +12,7 @@ class CharacterGhost(BaseEvent):
     SPEED = -50
 
     def __init__(self, position: PosType, ghost_surface: Surface, name_surface: Optional[Surface] = None):
-        super().__init__(characters_list=[], characters_ai={})
+        super().__init__(characters_dict={}, characters_ai={})
         self.surface_position: list = list(position)
         self.ghost_surface: Surface = ghost_surface
         self.name_surface: Surface = name_surface

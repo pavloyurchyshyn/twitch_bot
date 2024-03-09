@@ -10,10 +10,10 @@ from game_components.constants import PosType
 class HitVisualEffect(BaseEvent):
     name = 'hit_visual_effect'
     behind = False
-    HITS_IMAGES = [load_image(f'hits/{img}') for img in os.listdir('sprites/hits')]
+    HITS_IMAGES = [load_image(f'hits/{img}', size=(40, 40)) for img in os.listdir('sprites/hits')]
 
     def __init__(self, position: PosType, direction: int = 1):
-        super().__init__([], {})
+        super().__init__({}, {})
         if not self.HITS_IMAGES:
             self.finish()
             return

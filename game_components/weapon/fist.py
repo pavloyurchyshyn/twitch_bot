@@ -57,6 +57,7 @@ class Fists(BaseWeapon):
         return random.uniform(self.min_damage, self.max_damage)
 
     def draw(self):
-        from pygame import draw
-        from game_components.screen import MAIN_DISPLAY
-        draw.circle(MAIN_DISPLAY, (255, 0, 0), self.position, 5)
+        pass
+        # from pygame import draw
+        # from game_components.screen import MAIN_DISPLAY
+        # draw.circle(MAIN_DISPLAY, self.color, self.position, 5)

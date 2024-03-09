@@ -1,5 +1,5 @@
 import random
-from typing import List
+from typing import Dict
 from pygame import Surface, Rect, draw
 
 from game_components.character.user_character import Character
@@ -19,8 +19,8 @@ class StormEvent(BaseEvent):
     is_blocking = False
     name = 'StormLight'
 
-    def __init__(self, characters_list: List[Character]):
-        super().__init__(characters_list=characters_list, characters_ai={})
+    def __init__(self, characters_dict: Dict[str, Character]):
+        super().__init__(characters_dict=characters_dict, characters_ai={})
         self.cloud_surface: Surface = load_image(CLOUD_IMG)
         self.direction: int = random.choice((1, -1))
 

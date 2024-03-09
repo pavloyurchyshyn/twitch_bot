@@ -30,9 +30,9 @@ class DuelEvent(BaseEvent):
     behind = True
 
     def __init__(self, duelist_1: Character, duelist_2: Character,
-                 characters_list: List[Character], characters_ai: Dict[str, AI],
+                 characters_dict: Dict[str, Character], characters_ai: Dict[str, AI],
                  update_prediction: Callable):
-        super().__init__(characters_list=characters_list, characters_ai=characters_ai)
+        super().__init__(characters_dict=characters_dict, characters_ai=characters_ai)
         self.update_prediction: Callable = update_prediction
 
         self.duelist_1: Character = duelist_1

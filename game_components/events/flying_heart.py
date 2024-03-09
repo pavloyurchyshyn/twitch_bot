@@ -12,7 +12,7 @@ class FlyingHeart(BaseEvent):
     heart_img: Surface = load_image(path='heart.png')
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(characters_list=[], characters_ai={})
+        super().__init__(characters_dict={}, characters_ai={})
         self.surface_position: list = list(position)
 
     def update(self, dt: float, time: float) -> None:

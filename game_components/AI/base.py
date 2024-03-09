@@ -1,7 +1,8 @@
 import enum
 from abc import abstractmethod
 import random
-from typing import List, Optional
+from math import dist
+from typing import List, Optional, Callable
 from game_components.character.user_character import Character
 from game_components.screen import scaled_w, SCREEN_H
 from game_components.constants import PosType
@@ -35,8 +36,9 @@ class BaseTask:
     #     raise NotImplementedError
 
 
-class AI:
-    def __init__(self):
+class BaseAI:
+    def __init__(self, character: Character):
+        self.character: Character = character
         self.tasks_queue: List[BaseTask] = []
 
     def run_idle_walking(self):
@@ -45,11 +47,17 @@ class AI:
     def add_task(self, task: BaseTask) -> None:
         self.tasks_queue.append(task)
 
-    def update(self, character: Character, dt: float, time: float, game_obj) -> None:
+    @abstractmethod
+    def update(self, dt: float, time: float, game_obj) -> None:
+        raise NotImplementedError
+
+    def default_update(self, dt: float, time: float, game_obj) -> Optional[TaskState]:
         if self.tasks_queue:
-            tick_result = self.current_task.tick(character=character, dt=dt, time=time, game_obj=game_obj)
+            tick_result = self.current_task.tick(character=self.character, dt=dt, time=time, game_obj=game_obj)
             if tick_result in (TaskState.Done, TaskState.Failed):
                 self.finish_current_task()
+
+            return tick_result
 
     def finish_current_task(self):
         if self.tasks_queue:
@@ -64,6 +72,11 @@ class AI:
             return self.tasks_queue[0]
         else:
             return None
+
+
+class AI(BaseAI):
+    def update(self, dt: float, time: float, game_obj) -> None:
+        return self.default_update(dt=dt, time=time, game_obj=game_obj)
 
 
 class GoTo(BaseTask):
@@ -88,6 +101,11 @@ class GoTo(BaseTask):
 
         return TaskState.InProgress
 
+    @staticmethod
+    def get_random_go_to_task() -> 'GoTo':
+        # TODO fix numbers
+        return GoTo((scaled_w(random.uniform(0.05, 0.95)), SCREEN_H - 5))
+
 
 class IdleWalk(BaseTask):
     endless = True
@@ -97,15 +115,10 @@ class IdleWalk(BaseTask):
         self.subtask: GoTo = None
         self.timeout: float = None
 
-    @staticmethod
-    def get_random_go_to_task() -> GoTo:
-        # TODO fix numbers
-        return GoTo((scaled_w(random.uniform(0.05, 0.95)), SCREEN_H - 5))
-
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
         if self.timeout is None:
             self.timeout = time + random.randint(3, 10)
-            self.subtask = self.get_random_go_to_task()
+            self.subtask = GoTo.get_random_go_to_task()
 
         tick_res = self.subtask.tick(character=character, dt=dt, time=time)
 
@@ -143,3 +156,20 @@ class GoToPerson(GoTo):
         if res == TaskState.Done:
             LOGGER.debug(f'{character.name} finished task {self.name} with target {self.target.name}')
         return res
+
+
+class FindTarget(BaseTask):
+    name = 'find_target'
+
+    def __init__(self, filter_func: Callable):
+        self.filter_func: Callable = filter_func
+        self.found_target: Character = None
+
+    def tick(self, character: Character, dt: float, time: float, game_obj, **kwargs) -> TaskState:
+        targets: List[Character] = list(filter(self.filter_func, game_obj.characters.values()))
+        if targets:
+            self.found_target = min(targets, key=lambda t: dist(character.position, t.position))
+            return TaskState.Done
+
+        else:
+            return TaskState.Failed
