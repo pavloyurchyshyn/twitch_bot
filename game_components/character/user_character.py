@@ -3,34 +3,38 @@ from math import sin
 from typing import List, Optional, Union
 from pygame import Surface, transform, Color, Rect, draw
 
-from game_components.utils import DEFAULT_BACK_FONT
-from game_components.screen import MAIN_DISPLAY
 from game_components.constants import *
-from game_components.sprite_builder import get_character_body_img, recolor_surface, RecolorKeys, get_character_ghost
+from game_components.screen import MAIN_DISPLAY
 from game_components.weapon.base import BaseWeapon
+from game_components.utils import DEFAULT_BACK_FONT
 from game_components.utils import add_outline_to_image
+from game_components.sprite_builder import get_character_body_img, recolor_surface, RecolorKeys, get_character_ghost
 
 
 # TODO make character ABC
 class Character:
     attrs_const = AttrsCons
 
-    def __init__(self, name: str, position: PosType,
+    def __init__(self, position: PosType,
                  kind: str,
+                 name: str = '',
+                 draw_name: bool = True,
                  w_size: int = CHAR_SIZE, h_size: int = CHAR_SIZE,
                  speed: float = MOVE_SPEED, move_direction: int = 1,
-                 body_color: Color = DEFAULT_BODY_COLOR,
-                 eyes_color: Color = DEFAULT_EYES_COLOR,
-                 health_points: float = DEFAULT_HP,
+                 body_color: Optional[Color] = DEFAULT_BODY_COLOR,
+                 eyes_color: Optional[Color] = DEFAULT_EYES_COLOR,
+                 health_points: float = None,
                  max_health_points: float = DEFAULT_HP,
                  horizontal_velocity: float = 0,
                  vertical_velocity: float = 0,
+                 make_ghost: bool = True,
                  ghost_surface: Surface = None,
                  weapon: Optional[BaseWeapon] = None,
                  *_,
                  **__,
                  ):
         self.name: str = name.lower()
+        self._draw_name_flag: bool = draw_name
         self.kind: str = kind
         self.w_size: int = w_size
         self.h_size: int = h_size
@@ -38,8 +42,8 @@ class Character:
         self.look_direction: int = 1
         # TODO block view direction change
 
-        self.health_points: float = health_points
         self.max_health_points: float = max_health_points
+        self.health_points: float = max_health_points if health_points is None else health_points
 
         self.weapon: Optional[BaseWeapon] = weapon
 
@@ -53,16 +57,18 @@ class Character:
         self.horizontal_velocity: float = horizontal_velocity
         self.vertical_velocity: float = vertical_velocity + 0.1
 
-        self.body_color: Color = Color(body_color)
-        self.eyes_color: Color = Color(eyes_color)
+        self.body_color: Color = Color(body_color) if body_color else body_color
+        self.eyes_color: Color = Color(eyes_color) if eyes_color else eyes_color
         self.move_anim_deviation: int = random.randrange(-1, 2)
 
         self.surface: Surface = None
         self.name_surface: Surface = None
         self.render_surface()
-        self.render_name_surface()
+        if self.name:
+            self.render_name_surface()
 
-        if ghost_surface is None:
+        self.make_ghost: bool = make_ghost
+        if ghost_surface is None and make_ghost:
             ghost_surface = get_character_ghost(kind=self.kind, size=self.size)
         self.ghost_surface: Surface = ghost_surface
 
@@ -73,13 +79,14 @@ class Character:
 
     def render_surface(self):
         self.surface = get_character_body_img(kind=self.kind, size=self.size)
-        self.surface = recolor_surface(surface=self.surface,
-                                       color_key=RecolorKeys.BODY_COLOR_KEY,
-                                       new_color=self.body_color)
-
-        self.surface = recolor_surface(surface=self.surface,
-                                       color_key=RecolorKeys.EYES_COLOR_KEY,
-                                       new_color=self.eyes_color)
+        if self.body_color:
+            self.surface = recolor_surface(surface=self.surface,
+                                           color_key=RecolorKeys.BODY_COLOR_KEY,
+                                           new_color=self.body_color)
+        if self.eyes_color:
+            self.surface = recolor_surface(surface=self.surface,
+                                           color_key=RecolorKeys.EYES_COLOR_KEY,
+                                           new_color=self.eyes_color)
 
     def render_name_surface(self):
         name_surface = DEFAULT_BACK_FONT.render(self.name, True, 'white')
@@ -91,7 +98,7 @@ class Character:
         self.fall(dt)
         self.move(dt)
         if self.weapon:
-            self.weapon.update(dt=dt, position=self.rect.midright if self.look_direction == 1 else self.rect.midleft)
+            self.weapon.update(dt=dt, position=self.rect.midright if self.look_direction > 0 else self.rect.midleft)
 
     def draw(self, dt: float, time: float):
         position = list(self.position)
@@ -106,7 +113,8 @@ class Character:
         else:
             MAIN_DISPLAY.blit(self.surface, position)
 
-        self.draw_name(dy)
+        if self._draw_name_flag:
+            self.draw_name(dy)
         self.draw_hp_bar(dy)
         if self.weapon:
             self.weapon.draw()
@@ -180,6 +188,8 @@ class Character:
         self.vertical_velocity -= vertical_velocity
 
     def set_look_direction(self, direction: Union[int, float]) -> None:
+        if direction == 0:
+            return
         self.look_direction = -1 if direction < 0 else 1
 
     @property
