@@ -10,6 +10,7 @@ class RedeemsNames:
     kiss_person = "поцілювати"
     kick_person = "штовхнути"
     start_duel = "почати дуель"
+    # zombie_attack = 'зомбі'
     commands_to_ignore = [
         "замовити музику",
 
@@ -34,21 +35,27 @@ def get_game_obj() -> 'GameRunner':
     from pygame.time import Clock
     from pygame import quit as close_program_pygame
 
-    display.set_caption('twitch_entities')
+    if __name__ == '__main__':
+        display.set_caption('pytwitch_bot_debug')
+        working_msg = 'DEBUG'
+
+    else:
+        display.set_caption('twitch_entities')
+        working_msg = 'Бот працює'
 
     from redeems import RewardRedeemedObj
     from game_components.screen import MAIN_DISPLAY
     from game_components.game import Game
-    from game_components.utils import DEFAULT_FONT, normalize_color
     from game_components.character.user_character import Character, JUMP_VELOCITY, AttrsCons
     from game_components.AI import base
     from game_components.AI.go_and_kiss import GoAndKiss
     from game_components.AI.go_and_kick import GoAndKick
     from game_components.errors import RedeemError, ProhibitedColor
-    from logger import LOGGER
-    from game_components.utils import add_outline_to_image
+    from game_components.utils import add_outline_to_image, DEFAULT_FONT, normalize_color
 
-    ONLINE_TEXT = add_outline_to_image(DEFAULT_FONT.render('Бот працює', 1, [255, 255, 255], [100, 100, 100]))
+    from logger import LOGGER
+
+    ONLINE_TEXT = add_outline_to_image(DEFAULT_FONT.render(working_msg, 1, [255, 255, 255], [100, 100, 100]))
     ONLINE_TEXT_POS = list(MAIN_DISPLAY.get_rect().topright)
     ONLINE_TEXT_POS[0] -= ONLINE_TEXT.get_width()
 
@@ -70,6 +77,7 @@ def get_game_obj() -> 'GameRunner':
                 RedeemsNames.kiss_person: self.process_kiss_person,
                 RedeemsNames.kick_person: self.process_kick_person,
                 RedeemsNames.start_duel: self.process_start_duel,
+                # RedeemsNames.zombie_attack: self.process_zombie_attack,
             }
 
         def run(self):
@@ -230,6 +238,10 @@ def get_game_obj() -> 'GameRunner':
                 ai.finish_current_task()
             target_character: Character = self.game.get_character(target_name)
             ai.add_task(GoAndKick(target=target_character))
+        # TODO
+        def process_zombie_attack(self, redeem: RewardRedeemedObj):
+            self.validate_blocking_event(event_name=redeem.name)
+            self.game.start_zombies_event()
 
         def process_start_duel(self, redeem: RewardRedeemedObj):
             target_name: str = redeem.normalize_nickname(str(redeem.input))
@@ -244,9 +256,7 @@ def get_game_obj() -> 'GameRunner':
             target_ai = self.game.get_character_ai(target_name)
             self.validate_current_task_not_blocking(target_ai)
 
-            if self.game.check_if_any_event_is_blocking() or \
-                    self.game.check_if_redeem_is_blocked_by_events(redeem.name):
-                raise RedeemError('триває інший івент')
+            self.validate_blocking_event(event_name=redeem.name)
 
             if ai.current_task and not ai.current_task.skippable:
                 raise RedeemError('виконується задача яку не можна пропустити')
@@ -272,6 +282,13 @@ def get_game_obj() -> 'GameRunner':
         def validate_target_person_exists(self, name: str):
             if name not in self.game.characters:
                 raise RedeemError(f"персонаж з ім'ям {name} не існує")
+
+        def validate_blocking_event(self, event_name):
+            if self.game.check_if_any_event_is_blocking():
+                raise RedeemError('триває інший івент')
+
+            if self.game.check_if_redeem_is_blocked_by_events(event_name):
+                raise RedeemError('триває інший івент')
 
     return GameRunner()
 

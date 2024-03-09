@@ -8,12 +8,14 @@ from game_components.AI.base import AI
 from game_components.screen import MAIN_DISPLAY
 from game_components.character.user_character import Character, CHAR_SIZE
 from game_components.character.fabric import get_character
+from game_components.character.zombie import add_zombie
 from game_components.constants import PosType
 
 from game_components.events.base import BaseEvent
 from game_components.events.storm import StormEvent
 from game_components.events.duel_event import DuelEvent
 from game_components.events.character_died import CharacterGhost
+from game_components.events.zombies_event import ZombieEvent
 from game_components.singletone_decorator import single_tone_decorator
 
 SAVE_FILE_NAME = 'save.yaml'
@@ -41,7 +43,7 @@ class Game:
         for name, character in self.characters.copy().items():
             character_ai = self.characters_AI.get(name)
             if character_ai:
-                character_ai.update(character=character, dt=dt, time=self.time, game_obj=self)
+                character_ai.update(dt=dt, time=self.time, game_obj=self)
             try:
                 character.update(dt=dt, time=self.time)
                 character.draw(dt=dt, time=self.time)
@@ -71,15 +73,16 @@ class Game:
     def add_character(self, name: str, **kwargs):
         position = kwargs.pop(Character.attrs_const.position, self.get_random_spawn_position())
         self.characters[name] = get_character(name=name, position=position)
-        self.add_ai_for(name)
+        self.add_ai_for(name, character=self.characters[name])
 
-    def add_ai_for(self, name: str):
-        self.characters_AI[name] = AI()
+    def add_ai_for(self, name: str, character: Character = None):
+        character = self.characters[name] if character is None else character
+        self.characters_AI[name] = AI(character=character)
 
     def get_character_ai(self, name: str) -> Optional[AI]:
         if name in self.characters:
             if name not in self.characters_AI:
-                self.add_ai_for(name)
+                self.add_ai_for(name, character=self.characters[name])
             return self.characters_AI[name]
         else:
             return None
@@ -130,11 +133,12 @@ class Game:
         finally:
             for char_name, char_data in save_data.get('avatars_data', {}).items():
                 char_name: str = char_name.strip().lower()
-                self.characters[char_name] = get_character(**char_data)
-                self.add_ai_for(char_name)
+                character: Character = get_character(**char_data)
+                self.characters[char_name] = character
+                self.add_ai_for(char_name, character=character)
 
     def make_storm(self):
-        self.add_event(StormEvent(self.get_characters_list()))
+        self.add_event(StormEvent(self.characters))
 
     def add_character_ghost(self, character: Character):
         try:
@@ -157,7 +161,7 @@ class Game:
         self.send_msg(f'УВАГА @{duelist_1.name} оголосив дуель @{duelist_2.name} iamvol3Eh !')
         duel_event = DuelEvent(duelist_1=duelist_1,
                                duelist_2=duelist_2,
-                               characters_list=self.get_characters_list(),
+                               characters_dict=self.characters,
                                characters_ai=self.characters_AI,
                                update_prediction=self.end_prediction,
                                )
@@ -171,6 +175,12 @@ class Game:
 
     def get_characters_list(self) -> List[Character]:
         return list(self.characters.values())
+
+    def start_zombies_event(self):
+        self.add_event(ZombieEvent(self.characters, self.characters_AI))
+        pos = self.get_random_spawn_position()
+        pos = pos[0], -10
+        add_zombie(name='patient_0', position=pos, game_obj=self)
 
     @staticmethod
     def get_random_spawn_position() -> PosType:
