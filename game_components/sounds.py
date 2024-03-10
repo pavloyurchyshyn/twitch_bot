@@ -2,6 +2,7 @@ from pathlib import Path
 from pygame import mixer
 from logger import LOGGER
 from game_components.constants import KICK_SOUND, KISS_SOUND
+mixer.Channel(0).set_volume(0.3)
 
 SOUNDS_CASH = {}
 
@@ -16,6 +17,7 @@ def play_sound(sound_path: str):
             LOGGER.error(f'{sound_path} does not exists')
             return
         sound = mixer.Sound(sound_path)
+        sound.set_volume(0.3)
         SOUNDS_CASH[sound_path] = sound
 
     mixer.Sound.play(SOUNDS_CASH[sound_path])
