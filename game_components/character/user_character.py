@@ -30,12 +30,14 @@ class Character:
                  make_ghost: bool = True,
                  ghost_surface: Surface = None,
                  weapon: Optional[BaseWeapon] = None,
+                 is_player: bool = True,
                  *_,
                  **__,
                  ):
         self.name: str = name.lower()
         self._draw_name_flag: bool = draw_name
         self.kind: str = kind
+        self.is_player: bool = is_player
 
         self.w_size: int = w_size
         self.h_size: int = h_size
