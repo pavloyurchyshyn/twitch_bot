@@ -9,9 +9,10 @@ from game_components.constants import KISS_HEAL_VALUE
 class GoAndKiss(GoToPerson):
     name = 'go_and_kiss'
 
-    def tick(self, character: Character, dt: float, time: float, game_obj: Game, **kwargs) -> TaskState:
+    def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
         res = super().tick(character=character, dt=dt, time=time)
         if res == self.STATUS.Done:
+            game_obj = Game()
             game_obj.add_event(FlyingHeart(self.target.position))
             game_obj.add_event(FlyingHeart(character.position))
             character.heal(KISS_HEAL_VALUE)
