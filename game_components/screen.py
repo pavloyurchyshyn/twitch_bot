@@ -4,7 +4,6 @@ import ctypes
 
 user32 = ctypes.windll.user32
 SCREEN_W, SCREEN_H = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
-# SCREEN_W = 1870
 SCREEN_H = SCREEN_H // 4
 
 
@@ -25,8 +24,3 @@ MAIN_DISPLAY.fill(MAIN_SCREEN_DEF_COLOR)
 
 def is_rect_out_of_screen(rect: Rect) -> bool:
     return not MAIN_DISPLAY.get_rect().colliderect(Rect(rect))
-
-# SMALL_DISPLAY = Surface([SCREEN_W // 5, SCREEN_H // 5], flags, 32)
-# SMALL_DISPLAY_BACK_COLOR = [0, 0, 0, 125]
-# SMALL_DISPLAY.fill(SMALL_DISPLAY_BACK_COLOR)
-# SMALL_DISPLAY.convert_alpha()

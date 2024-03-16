@@ -10,10 +10,9 @@ class RedeemsNames:
     kiss_person = "поцілювати"
     kick_person = "штовхнути"
     start_duel = "почати дуель"
-    # zombie_attack = 'зомбі'
+    zombie_attack = 'зомбі'
     commands_to_ignore = [
         "замовити музику",
-
     ]
 
 
@@ -78,7 +77,7 @@ def get_game_obj() -> 'GameRunner':
                 RedeemsNames.kiss_person: self.process_kiss_person,
                 RedeemsNames.kick_person: self.process_kick_person,
                 RedeemsNames.start_duel: self.process_start_duel,
-                # RedeemsNames.zombie_attack: self.process_zombie_attack,
+                RedeemsNames.zombie_attack: self.process_zombie_attack,
             }
 
         def run(self):
@@ -242,9 +241,10 @@ def get_game_obj() -> 'GameRunner':
             target_character: Character = self.game.get_character(target_name)
             ai.add_task(GoAndKick(target=target_character))
 
-        # TODO
         def process_zombie_attack(self, redeem: RewardRedeemedObj):
             self.validate_blocking_event(event_name=redeem.name)
+            if not self.game.characters:
+                raise RedeemError('немає кому битись проти зомбі')
             self.game.start_zombies_event()
 
         def process_start_duel(self, redeem: RewardRedeemedObj):
@@ -302,6 +302,7 @@ if __name__ == '__main__':
     g.game.add_character('Dummy')
     g.game.load()
     try:
+        g.game.start_zombies_event()
         g.run()
     finally:
         pass

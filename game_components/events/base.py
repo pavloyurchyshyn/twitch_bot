@@ -4,6 +4,7 @@ import random
 
 from game_components.character.user_character import Character
 from game_components.AI.base import AI
+from game_components.global_data import GlobalData
 
 
 class BaseEvent:
@@ -11,6 +12,8 @@ class BaseEvent:
     behind: bool = True
     blocked_redeems: tuple = ()
     name: str
+
+    global_data: GlobalData = GlobalData()
 
     def __init__(self, characters_dict: Dict[str, Character], characters_ai: Dict[str, AI]):
         self.characters_dict: Dict[str, Character] = characters_dict

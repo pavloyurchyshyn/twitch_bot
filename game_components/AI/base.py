@@ -2,10 +2,11 @@ import enum
 from abc import abstractmethod
 import random
 from math import dist
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Union
 from game_components.character.user_character import Character
 from game_components.screen import scaled_w, SCREEN_H
 from game_components.constants import PosType
+from game_components.global_data import GlobalData
 from logger import LOGGER
 
 
@@ -16,6 +17,7 @@ class TaskState(enum.Enum):
 
 
 class BaseTask:
+    global_data: GlobalData = GlobalData()
     name: str
     verbal_name: str
     STATUS: TaskState = TaskState
@@ -23,17 +25,23 @@ class BaseTask:
     endless: bool = False
     skippable: bool = True
 
+    def __init__(self, timeout: Optional[float] = None):
+        self.timeout: Optional[float] = timeout
+
+    @property
+    def is_time_out(self) -> float:
+        return True if self.timeout is None else self.global_data.time > self.timeout
+
+    def set_timeout(self, time: float) -> None:
+        self.timeout = self.global_data.time + time
+
     @abstractmethod
-    def tick(self, character: Character, dt: float, time: float, game_obj, **kwargs) -> TaskState:
+    def tick(self, character: Character, dt: float, time: float, game_obj, ai: 'BaseAI', **kwargs) -> TaskState:
         raise NotImplementedError
-    # TODO think about it
-    # @abstractmethod
-    # def get_dict(self) -> dict:
-    #     raise NotImplementedError
-    #
-    # @abstractmethod
-    # def load(self, save: dict) -> None:
-    #     raise NotImplementedError
+
+    @staticmethod
+    def get_random_time(min_t: int = 5, max_t: int = 10) -> int:
+        return random.randint(min_t, max_t)
 
 
 class BaseAI:
@@ -51,9 +59,9 @@ class BaseAI:
     def update(self, dt: float, time: float, game_obj) -> None:
         raise NotImplementedError
 
-    def default_update(self, dt: float, time: float, game_obj) -> Optional[TaskState]:
+    def default_update(self, dt: float, time: float, game_obj, *_, **__) -> Optional[TaskState]:
         if self.tasks_queue:
-            tick_result = self.current_task.tick(character=self.character, dt=dt, time=time, game_obj=game_obj)
+            tick_result = self.current_task.tick(character=self.character, dt=dt, time=time, game_obj=game_obj, ai=self)
             if tick_result in (TaskState.Done, TaskState.Failed):
                 self.finish_current_task()
 
@@ -83,6 +91,7 @@ class GoTo(BaseTask):
     name = 'go_to'
 
     def __init__(self, position: PosType, look_direction: Optional[int] = None):
+        super().__init__()
         self.position: PosType = position
         self.look_direction: Optional[int] = look_direction
 
@@ -111,26 +120,44 @@ class IdleWalk(BaseTask):
     endless = True
     name = 'idle_walk'
 
-    def __init__(self):
-        self.subtask: GoTo = None
-        self.timeout: float = None
+    def __init__(self, stop_on_timeout: bool = False):
+        super().__init__(timeout=self.get_random_time())
+        self.subtask: Union[GoTo, DoNothing] = GoTo.get_random_go_to_task()
+        self.stop_on_timeout: bool = stop_on_timeout
 
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
-        if self.timeout is None:
-            self.timeout = time + random.randint(3, 10)
-            self.subtask = GoTo.get_random_go_to_task()
-
         tick_res = self.subtask.tick(character=character, dt=dt, time=time)
 
-        # TODO make one if
-        if tick_res == TaskState.Done or self.timeout < time:
+        if self.is_time_out and self.stop_on_timeout:
+            return self.STATUS.Done
+
+        if tick_res == TaskState.Done or self.is_time_out:
             LOGGER.debug(f'Task {self.name} for {character.name} finished'
                          f'({"timeout" if self.timeout < time else "done"})')
-            self.timeout = None
+
+            self.set_timeout(self.get_random_time())
+            if random.random():
+                self.subtask: GoTo = GoTo.get_random_go_to_task()
+            else:
+                self.subtask: DoNothing = DoNothing()
+
         elif tick_res == TaskState.Failed:
             return TaskState.Failed
 
         return TaskState.InProgress
+
+
+class DoNothing(BaseTask):
+    name = 'do_nothing'
+
+    def __init__(self):
+        super().__init__(timeout=self.get_random_time())
+
+    def tick(self, character: Character, dt: float, time: float, game_obj, ai: 'BaseAI', **kwargs) -> TaskState:
+        if self.is_time_out:
+            return TaskState.Done
+        else:
+            return TaskState.InProgress
 
 
 class GoToPerson(GoTo):
@@ -142,15 +169,22 @@ class GoToPerson(GoTo):
         super().__init__(tuple(target.position))
 
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
-        self.position = self.target.position
+        self.position = self.target.get_center()
         if self.target.dead:
             character.stop()
             return TaskState.Failed
-        elif self.target.rect.colliderect(character.rect):
+
+        elif character.rect.colliderect(self.target.rect):
             character.stop()
+            LOGGER.debug(f'{character.name} finished task {self.name} with target {self.target.name}')
             return TaskState.Done
-        elif self.target.rect.bottom < character.rect.y - character.h_size and not self.wait_for_flying_person:
-            return TaskState.Failed
+
+        elif character.rect.x < self.target.get_center()[0] < character.rect.right:
+            if self.wait_for_flying_person:
+                character.stop()
+                return TaskState.InProgress
+            else:
+                return TaskState.Failed
 
         res = super().tick(character=character, dt=dt, time=time)
         if res == TaskState.Done:
@@ -162,6 +196,7 @@ class FindTarget(BaseTask):
     name = 'find_target'
 
     def __init__(self, filter_func: Callable):
+        super().__init__()
         self.filter_func: Callable = filter_func
         self.found_target: Character = None
 

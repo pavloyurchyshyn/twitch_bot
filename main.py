@@ -339,8 +339,6 @@ class FunBot:
             except Exception as e:
                 LOGGER.error(f'Failed to end prediction {self.current_prediction.title} status={status}, winner={winner}')
                 LOGGER.error(f'Reason {e}')
-                # await self.chat.send_message(TARGET_CHANNEL,
-                #                              f'@{self.channel_owner_user.login} не вийшло змінити предікшн')
             else:
                 LOGGER.info(f'Changed prediction status to {status} without errors')
             finally:

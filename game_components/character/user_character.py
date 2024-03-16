@@ -62,7 +62,7 @@ class Character:
 
         self.body_color: Color = Color(body_color) if body_color else body_color
         self.eyes_color: Color = Color(eyes_color) if eyes_color else eyes_color
-        self.move_anim_deviation: int = random.randrange(-1, 2)
+        # self.move_anim_deviation: int = random.randrange(-1, 2)
 
         self.surface: Surface = None
         self.name_surface: Surface = None
@@ -79,6 +79,7 @@ class Character:
 
         self.draw_over: List[Surface] = []
         self.death_reason: str = ''
+        self.movement_time: float = 0
 
     def render_surface(self):
         self.surface = get_character_body_img(kind=self.kind, size=self.size)
@@ -110,12 +111,13 @@ class Character:
         if self.weapon:
             self.weapon.update(dt=dt, position=self.hands_endpoint)
 
-    def draw(self, dt: float, time: float):
+    def draw(self, *_, **__):
         surface = transform.rotate(self.surface, self.angle)
 
         position = list(self.rect.center)
         if self.horizontal_velocity != 0 and not self.is_falling:
-            dy = sin(time * 8 + self.move_anim_deviation) * self.h_size * 0.05
+            # dy = sin(self.movement_time * 8 + self.move_anim_deviation) * self.h_size * 0.05
+            dy = sin(self.movement_time * 8) * self.h_size * 0.05
             position[1] += dy
         else:
             dy = 0
@@ -172,6 +174,9 @@ class Character:
                 self.horizontal_velocity = round(self.horizontal_velocity, 2)
             elif not self.is_falling:
                 self.horizontal_velocity = self.move_direction * self.speed
+                self.movement_time += dt
+                # if self.movement_time > 1000:  # TODO check
+                #     self.movement_time = 0
 
             dx = self.horizontal_velocity * dt
             self._position[0] += self.horizontal_velocity * dt

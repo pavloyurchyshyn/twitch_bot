@@ -63,7 +63,7 @@ def add_outline_to_image(image: Surface, border_color: tuple = (0, 0, 0)) -> Sur
     mask = py_mask.from_surface(image)
     result_surface = get_surface(image.get_width() + 4, image.get_height() + 4, transparent=1)
     loc = [2, 2]
-    mask_surf = mask.to_surface(unsetcolor=(0,0,0,0), setcolor=border_color)
+    mask_surf = mask.to_surface(unsetcolor=(0, 0, 0, 0), setcolor=border_color)
     result_surface.blit(mask_surf, (loc[0] - 1, loc[1]))
     result_surface.blit(mask_surf, (loc[0] + 1, loc[1]))
     result_surface.blit(mask_surf, (loc[0], loc[1] - 1))
@@ -72,3 +72,8 @@ def add_outline_to_image(image: Surface, border_color: tuple = (0, 0, 0)) -> Sur
     result_surface.blit(image, loc)
 
     return result_surface
+
+
+def get_text_with_outline(text: str, color='white', font_: font.Font = DEFAULT_FONT,
+                          border_color: tuple = (0, 0, 0)) -> Surface:
+    return add_outline_to_image(font_.render(text, 0, color), border_color=border_color)

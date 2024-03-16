@@ -1,11 +1,11 @@
 import random
 from math import dist
 from typing import List, Optional, Dict, Callable
-from twitchAPI.type import PredictionStatus
 from pygame import Surface
 
 from logger import LOGGER
 from game_components.events.base import BaseEvent
+from game_components.events.prediction_mixin import EventPredictionMixin
 from game_components.character.user_character import Character
 from game_components.AI.cheer import Cheer
 from game_components.AI.base import AI, GoTo, IdleWalk
@@ -24,7 +24,7 @@ except Exception:
     FLAG_IMG: Optional[Surface] = None
 
 
-class DuelEvent(BaseEvent):
+class DuelEvent(BaseEvent, EventPredictionMixin):
     name = 'duel'
     is_blocking = True
     behind = True
@@ -33,8 +33,7 @@ class DuelEvent(BaseEvent):
                  characters_dict: Dict[str, Character], characters_ai: Dict[str, AI],
                  update_prediction: Callable):
         super().__init__(characters_dict=characters_dict, characters_ai=characters_ai)
-        self.update_prediction: Callable = update_prediction
-
+        EventPredictionMixin.__init__(self, update_method=update_prediction)
         self.duelist_1: Character = duelist_1
         self.duelist_1_ai = self.characters_ai[self.duelist_1.name]
         self.duelist_1.restore_hp()
@@ -177,14 +176,7 @@ class DuelEvent(BaseEvent):
                     ai.add_task(IdleWalk())
             play_sound(BATTLE_END_SOUND)
 
-    def end_prediction(self, winner: str, reason: str = ""):
-        self.update_prediction(status=PredictionStatus.RESOLVED, winner=winner, reason=reason)
 
-    def lock_prediction(self):
-        self.update_prediction(status=PredictionStatus.LOCKED)
-
-    def cancel_prediction(self, reason: str = ""):
-        self.update_prediction(status=PredictionStatus.CANCELED, reason=reason)
 
     def draw(self) -> None:
         if FLAG_IMG:

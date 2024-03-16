@@ -1,23 +1,23 @@
 import pathlib
-import random
-from typing import Dict, Tuple, Optional, List, Callable
+from typing import Dict, Optional, List, Callable
 
 from logger import LOGGER
-from game_components.AI.base import AI
-from game_components.screen import MAIN_DISPLAY
-from game_components.character.user_character import Character, CHAR_SIZE
+from game_components.AI.base import AI, IdleWalk
+from game_components.character.user_character import Character
 from game_components.character.fabric import get_character
-from game_components.character.zombie import add_zombie
-from game_components.constants import PosType
 
 from game_components.events.base import BaseEvent
 from game_components.events.storm import StormEvent
 from game_components.events.duel_event import DuelEvent
 from game_components.events.character_died import CharacterGhost
 from game_components.events.zombies_event import ZombieEvent
+from game_components.events.title import TitleEvent
 from game_components.singletone_decorator import single_tone_decorator
 from game_components.save_functions import *
 from game_components.save_functions import add_1_to_user_death_count
+from game_components.global_data import GlobalData
+
+GD: GlobalData = GlobalData()
 
 
 @single_tone_decorator
@@ -29,49 +29,52 @@ class Game:
         self.send_msg: Callable = lambda *_, **__: None  # TODO make functions interfaces
         self.create_prediction: Callable = lambda *_, **__: None
         self.end_prediction: Callable = lambda *_, **__: None
-        self.time: float = 0
 
     def update(self, dt: float):
-        self.time += dt
+        GD.update_time(dt)
 
         for event in self.events:
             if event.behind:
                 event.draw()
 
-        for name, character in self.characters.copy().items():
-            character_ai = self.characters_AI.get(name)
+        for uid, character in self.characters.copy().items():
+            character_ai = self.characters_AI.get(uid)
             if character_ai:
-                character_ai.update(dt=dt, time=self.time, game_obj=self)
+                character_ai.update(dt=dt, time=GD.time, game_obj=self)
             try:
-                character.update(dt=dt, time=self.time)
-                character.draw(dt=dt, time=self.time)
+                character.update(dt=dt, time=GD.time)
+                character.draw(dt=dt, time=GD.time)
                 if character.dead:
-                    self.characters.pop(character.name)
-                    self.characters_AI.pop(character.name, None)
+                    self.characters.pop(uid)
+                    self.characters_AI.pop(uid, None)
                     LOGGER.info(f'{character.name} died')
-                    self.add_character_ghost(character)
-                    death_reason = ''
-                    if character.death_reason:
-                        death_reason = character.death_reason
-                    self.send_msg(f'@{character.name} пагіб iamvol3Ogo {death_reason}')
-                    add_1_to_user_death_count(character_uid=name, save_file=SAVE_FILE_NAME)
+
+                    if character.make_ghost:
+                        self.add_character_ghost(character)
+
+                    if character.is_player:
+                        death_reason = ''
+                        if character.death_reason:
+                            death_reason = character.death_reason
+                        self.send_msg(f'@{character.name} пагіб iamvol3Ogo {death_reason}')
+                        add_1_to_user_death_count(character_uid=uid, save_file=SAVE_FILE_NAME)
             except Exception as e:
-                LOGGER.error(f'Failed to update {name}\n{e}')
+                LOGGER.error(f'Failed to update {uid}\n{e}')
 
         for event in self.events.copy():
-            event.update(dt, time=self.time)
+            event.update(dt, time=GD.time)
             if not event.behind:
                 event.draw()
             if event.is_done:
                 self.events.remove(event)
-                LOGGER.info(f'{event.name} is done')
+                LOGGER.debug(f'{event.name} is done')
 
     def get_character(self, name: str) -> Optional[Character]:
         return self.characters.get(name)
 
     def add_character(self, name: str, **kwargs):
 
-        position = kwargs.pop(Character.attrs_const.position, self.get_random_spawn_position())
+        position = kwargs.pop(Character.attrs_const.position, GD.get_random_spawn_position())
         person_data = get_character_person_attrs(name)
         kwargs.update(person_data)
 
@@ -135,6 +138,8 @@ class Game:
                 character: Character = get_character(**char_data)
                 self.characters[char_name] = character
                 self.add_ai_for(char_name, character=character)
+                if character.move_direction:
+                    self.get_character_ai(char_name).add_task(IdleWalk())
 
     def make_storm(self):
         self.add_event(StormEvent(self.characters))
@@ -176,13 +181,16 @@ class Game:
         return list(self.characters.values())
 
     def start_zombies_event(self):
-        self.add_event(ZombieEvent(self.characters, self.characters_AI))
-        pos = self.get_random_spawn_position()
-        pos = pos[0], -10
-        add_zombie(name='patient_0', position=pos, game_obj=self)
+        self.send_msg(f'УВАГА! УВАГА! Зомбі йдуть! Всім приготуватись! І зробити ставки TwitchConHYPE ')
 
-    @staticmethod
-    def get_random_spawn_position() -> PosType:
-        x_pos = random.randint(0, MAIN_DISPLAY.get_width() - CHAR_SIZE)
-        y_pos = random.randint(CHAR_SIZE, MAIN_DISPLAY.get_height() - CHAR_SIZE)
-        return x_pos, y_pos
+        zombie_event = ZombieEvent(characters_dict=self.characters,
+                                   characters_ai=self.characters_AI,
+                                   update_prediction=self.end_prediction)
+        title = TitleEvent(text='!ZOMBIES ATTACK!', event_to_follow=zombie_event)
+        self.add_event(zombie_event)
+        self.add_event(title)
+
+        self.create_prediction(title='Хто переможе?',
+                               outcomes=[ZombieEvent.Const.Users, ZombieEvent.Const.Zombie],
+                               time_to_predict=ZombieEvent.Const.time_to_predict)
+        LOGGER.info(f'Started zombie event')
