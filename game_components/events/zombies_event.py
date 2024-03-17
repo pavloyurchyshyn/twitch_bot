@@ -24,7 +24,7 @@ class ZombieEvent(BaseEvent, EventPredictionMixin):
     class Const:
         Users = 'Люди'
         Zombie = 'Зомбі'
-        time_to_predict = 10
+        time_to_predict = 60
         time_to_fight = 90
 
     def __init__(self, characters_dict: Dict[str, Character],
