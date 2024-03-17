@@ -39,7 +39,7 @@ class GoAndKill(BaseTask):
         if self.target.dead:
             return self.STATUS.Failed
 
-        res = self.current_task.tick(character=character, dt=dt, time=time)
+        res = self.current_task.tick(character=character, dt=dt, time=time, **kwargs)
         if self.current_task == self.go_to_task:
             if res == TaskState.Done:
                 self.current_task = self.hit_task

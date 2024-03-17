@@ -43,7 +43,7 @@ class StormEvent(BaseEvent):
             self.target = self.get_random_character()
 
         if not self.made_hit and self.target:
-            if self.hit_box.left <= self.target.get_center()[0] <= self.hit_box.right:
+            if self.hit_box.left <= self.target.center_x <= self.hit_box.right:
                 self.made_hit = True
                 self.target.damage(DAMAGE, reason=self.name)
                 play_sound(SOUNDS_NAME)
@@ -60,8 +60,8 @@ class StormEvent(BaseEvent):
 
         # TODO lighting image
         if self.target:
-            if self.hit_box.left <= self.target.get_center()[0] <= self.hit_box.right:
-                draw.line(MAIN_DISPLAY, [255, 255, 255], self.hit_box.center, self.target.get_center(), 3)
+            if self.hit_box.left <= self.target.center_x <= self.hit_box.right:
+                draw.line(MAIN_DISPLAY, [255, 255, 255], self.hit_box.center, self.target.center, 3)
 
     @property
     def cloud_position(self):

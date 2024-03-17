@@ -43,7 +43,7 @@ class ZombieAI(BaseAI):
     def update(self, dt: float, time: float, game_obj) -> None:
         tick_result = None
         if self.tasks_queue:
-            tick_result = self.current_task.tick(character=self.character, dt=dt, time=time, game_obj=game_obj)
+            tick_result = self.current_task.tick(character=self.character, dt=dt, time=time, game_obj=game_obj, ai=self)
         else:
             self.add_task(self.get_find_target_zombie_task())
 

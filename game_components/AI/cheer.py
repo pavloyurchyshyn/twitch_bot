@@ -20,7 +20,8 @@ class Cheer(BaseTask):
 
         if not character.is_falling and self.jump_cd < time:
             character.push(vertical_velocity=JUMP_VELOCITY * random.uniform(0.1, 1),
-                           horizontal_velocity=random.randint(-5, 5))
+                           horizontal_velocity=random.randint(-5, 5),
+                           rotation_speed=random.randint(-5, 5))
 
         elif character.is_falling and self.jump_cd < time:
             self.jump_cd = time + random.randint(0, 5)

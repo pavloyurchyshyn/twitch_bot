@@ -2,7 +2,7 @@ import random
 
 from game_components.weapon.base import BaseWeapon
 from game_components.character.user_character import Character
-from game_components.constants import HOOK_VELOCITY, KICK_VELOCITY, FIST_HIT_DAMAGE, PosType
+from game_components.constants import HOOK_VELOCITY, KICK_VELOCITY, FIST_HIT_DAMAGE, PosType, DEFAULT_ROTATION_SPEED
 from game_components.sounds import play_kick_sound
 from game_components.events.hit_effect import HitVisualEffect
 
@@ -50,6 +50,7 @@ class Fists(BaseWeapon):
         d_horizontal = -1 if character.position[0] > target.position[0] else 1
         target.push(horizontal_velocity=self.push_power * d_horizontal,
                     vertical_velocity=self.hook_power,
+                    rotation_speed=d_horizontal*DEFAULT_ROTATION_SPEED,
                     )
 
     @property

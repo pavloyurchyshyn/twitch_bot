@@ -42,7 +42,7 @@ class Character:
         self.w_size: int = w_size
         self.h_size: int = h_size
         self._position: List = list(position)
-        self.rotation_speed: float = 0
+        self.rotation_speed: float = DEFAULT_ROTATION_SPEED * random.random()
         self.angle: float = 0
 
         self.look_direction: int = 1
@@ -104,7 +104,7 @@ class Character:
 
         if self.on_the_ground:
             self.angle = 0
-            # self.rotation_speed = 0
+            self.rotation_speed = 0
         else:
             self.angle += self.rotation_speed
 
@@ -112,24 +112,29 @@ class Character:
             self.weapon.update(dt=dt, position=self.hands_endpoint)
 
     def draw(self, *_, **__):
-        surface = transform.rotate(self.surface, self.angle)
+        if self.angle:
+            surface = transform.rotate(self.surface, self.angle)
+        else:
+            surface = self.surface
 
-        position = list(self.rect.center)
+        position = list(self.center)
         if self.horizontal_velocity != 0 and not self.is_falling:
             # dy = sin(self.movement_time * 8 + self.move_anim_deviation) * self.h_size * 0.05
             dy = sin(self.movement_time * 8) * self.h_size * 0.05
             position[1] += dy
         else:
             dy = 0
-        dx = -self.surface.get_width() // 2
+        dx = -surface.get_width() // 2
 
         position[0] += dx
-        position[1] += dy - self.surface.get_height() // 2
+        position[1] += dy - surface.get_height() // 2
 
         if self.look_direction > 0:
             surface = transform.flip(surface, True, False)
 
         MAIN_DISPLAY.blit(surface, position)
+
+        # draw.rect(MAIN_DISPLAY, 'red', )
 
         if self._draw_name_flag:
             self.draw_name(dy)
@@ -205,9 +210,10 @@ class Character:
                 self.rect.y = self._position[1]
                 self.vertical_velocity = 0
 
-    def push(self, horizontal_velocity: float = 0, vertical_velocity: float = 0):
+    def push(self, horizontal_velocity: float = 0, vertical_velocity: float = 0, rotation_speed: float = 0):
         self.horizontal_velocity += horizontal_velocity
         self.vertical_velocity -= vertical_velocity
+        self.rotation_speed += rotation_speed
 
     def set_look_direction(self, direction: Union[int, float]) -> None:
         if direction == 0:
@@ -232,9 +238,19 @@ class Character:
 
     def stop(self):
         self.move_direction = 0
+        self.movement_time = 0
 
-    def get_center(self) -> PosType:
+    @property
+    def center(self) -> PosType:
         return self.rect.center
+
+    @property
+    def center_x(self) -> int:
+        return self.center[0]
+
+    @property
+    def center_y(self) -> int:
+        return self.center[1]
 
     def restore_hp(self):
         self.health_points = self.max_health_points

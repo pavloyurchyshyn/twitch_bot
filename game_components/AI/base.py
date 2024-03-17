@@ -55,6 +55,9 @@ class BaseAI:
     def add_task(self, task: BaseTask) -> None:
         self.tasks_queue.append(task)
 
+    def insert_task(self, task: BaseTask, index: int = 0):
+        self.tasks_queue.insert(index, task)
+
     @abstractmethod
     def update(self, dt: float, time: float, game_obj) -> None:
         raise NotImplementedError
@@ -150,10 +153,11 @@ class IdleWalk(BaseTask):
 class DoNothing(BaseTask):
     name = 'do_nothing'
 
-    def __init__(self):
-        super().__init__(timeout=self.get_random_time())
+    def __init__(self, time: float = None):
+        time = time if time else self.get_random_time()
+        super().__init__(timeout=time)
 
-    def tick(self, character: Character, dt: float, time: float, game_obj, ai: 'BaseAI', **kwargs) -> TaskState:
+    def tick(self, character: Character, dt: float, time: float, game_obj, **kwargs) -> TaskState:
         if self.is_time_out:
             return TaskState.Done
         else:
@@ -168,8 +172,8 @@ class GoToPerson(GoTo):
         self.target: Character = target
         super().__init__(tuple(target.position))
 
-    def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
-        self.position = self.target.get_center()
+    def tick(self, character: Character, dt: float, time: float, ai: BaseAI, **kwargs) -> TaskState:
+        self.position = self.target.center
         if self.target.dead:
             character.stop()
             return TaskState.Failed
@@ -179,7 +183,7 @@ class GoToPerson(GoTo):
             LOGGER.debug(f'{character.name} finished task {self.name} with target {self.target.name}')
             return TaskState.Done
 
-        elif character.rect.x < self.target.get_center()[0] < character.rect.right:
+        elif character.rect.x < self.target.center_x < character.rect.right:
             if self.wait_for_flying_person:
                 character.stop()
                 return TaskState.InProgress

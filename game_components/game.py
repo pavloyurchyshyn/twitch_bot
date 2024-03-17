@@ -186,7 +186,8 @@ class Game:
         zombie_event = ZombieEvent(characters_dict=self.characters,
                                    characters_ai=self.characters_AI,
                                    update_prediction=self.end_prediction)
-        title = TitleEvent(text='!ZOMBIES ATTACK!', event_to_follow=zombie_event)
+        title = TitleEvent(text='!ZOMBIES ATTACK!', draw_time=True,
+                           timeout=ZombieEvent.Const.time_to_predict, text_color='red')
         self.add_event(zombie_event)
         self.add_event(title)
 
