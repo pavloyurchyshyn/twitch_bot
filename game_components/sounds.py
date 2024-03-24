@@ -5,7 +5,7 @@ from game_components.constants import KICK_SOUND, KISS_SOUND
 from config import Config
 mixer.Channel(0).set_volume(0.3)
 
-SOUNDS_CASH = {}
+SOUNDS_CACHE = {}
 CONFIG = Config()
 
 
@@ -14,15 +14,15 @@ def play_sound(sound_path: str):
     if not str(sound_path).startswith('sounds'):
         sound_path = Path('sounds', sound_path)
 
-    if str(sound_path) not in SOUNDS_CASH:
+    if str(sound_path) not in SOUNDS_CACHE:
         if not sound_path.exists():
             LOGGER.error(f'{sound_path} does not exists')
             return
         sound = mixer.Sound(sound_path)
         sound.set_volume(CONFIG.sounds.get('global_volume', 0.5))
-        SOUNDS_CASH[sound_path] = sound
+        SOUNDS_CACHE[sound_path] = sound
 
-    mixer.Sound.play(SOUNDS_CASH[sound_path])
+    mixer.Sound.play(SOUNDS_CACHE[sound_path])
 
 
 def play_kick_sound():

@@ -1,6 +1,5 @@
 import os
 import yaml
-from typing import Tuple
 from logger import LOGGER
 from game_components.singletone_decorator import single_tone_decorator
 

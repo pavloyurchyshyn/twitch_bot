@@ -1,7 +1,7 @@
 import enum
 from typing import Tuple
 
-PosType = Tuple[int, int]
+SizeType = PosType = Tuple[int, int]
 
 MOVE_SPEED = 100
 FALL_SPEED = 100
@@ -44,3 +44,8 @@ class AttrsCons(enum.Enum):
     @classmethod
     def get_person_const(cls) -> tuple:
         return cls.w_size, cls.h_size, cls.max_health_points, cls.kind, cls.speed, cls.body_color, cls.eyes_color
+
+
+class StatesConst:
+    Idle = 'idle'
+    Sleeping: str = 'sleeping'

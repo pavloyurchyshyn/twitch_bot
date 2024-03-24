@@ -56,7 +56,7 @@ class ZombieEvent(BaseEvent, EventPredictionMixin):
             game_obj: Game = Game()
             for i in range(users_number):
                 pos = self.global_data.get_random_spawn_position()
-                add_zombie(name=f'patient_{i}', position=pos, game_obj=game_obj)
+                add_zombie(position=pos, game_obj=game_obj)
             game_obj.add_event(TitleEvent(text='Survive for', event_to_follow=self,
                                           timeout=self.Const.time_to_fight, draw_time=True))
             LOGGER.info('Started zombies fight')

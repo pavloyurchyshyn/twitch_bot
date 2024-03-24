@@ -9,6 +9,9 @@ creds:
 characters:
   size: [80, 80]
 
+sounds:
+  global_volume: 0.3
+
 redeems:
   - title:
     prompt:

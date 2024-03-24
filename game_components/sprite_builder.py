@@ -1,4 +1,6 @@
+from pathlib import Path
 from pygame import Surface, Color
+
 from game_components.utils import load_image, normalize_color
 
 BODY_IMG_NAME: str = 'sprite.png'
@@ -6,34 +8,46 @@ MASK_IMG_NAME: str = 'mask.png'
 GHOST_IMG_NAME: str = 'ghost.png'
 
 
-def get_character_body_img(kind: str, size=None, smooth_scale=False) -> Surface:
-    return load_image(path=f'{kind}/{BODY_IMG_NAME}', size=size, smooth_scale=smooth_scale)
+class SpritesBuilder:
+    CACHE = {}
 
+    class RecolorKeys:
+        BODY_COLOR_KEY: Color = Color('blue')
+        EYES_COLOR_KEY: Color = Color('green')
 
-def get_character_mask(kind: str, size=None, smooth_scale=False) -> Surface:
-    return load_image(path=f'{kind}/{MASK_IMG_NAME}', size=size, smooth_scale=smooth_scale)
+    @classmethod
+    def get_character_body_img(cls, kind: str, state: str, size=None, smooth_scale=False) -> Surface:
+        return cls.load_image_cache(path=Path(kind, state, BODY_IMG_NAME), size=size, smooth_scale=smooth_scale)
 
+    @classmethod
+    def get_character_mask(cls, kind: str, state: str,
+                           mask_name: str = MASK_IMG_NAME, size=None, smooth_scale=False) -> Surface:
+        return cls.load_image_cache(path=Path(kind, state, mask_name), size=size, smooth_scale=smooth_scale)
 
-def get_character_ghost(kind: str, size=None, smooth_scale=False) -> Surface:
-    return load_image(path=f'{kind}/{GHOST_IMG_NAME}', size=size, smooth_scale=smooth_scale)
+    @classmethod
+    def get_character_ghost(cls, kind: str, size=None, smooth_scale=False) -> Surface:
+        return cls.load_image_cache(path=Path(kind, GHOST_IMG_NAME), size=size, smooth_scale=smooth_scale)
 
+    @classmethod
+    def recolor_surface(cls, surface: Surface, color_key: Color,
+                        new_color: Color, kind: str,
+                        state: str, mask_name: str = MASK_IMG_NAME) -> Surface:
+        new_color = normalize_color(new_color)
+        surface = surface.copy()
+        w, h = surface.get_size()
+        mask_surface = cls.get_character_mask(kind=kind, state=state, mask_name=mask_name, size=surface.get_size())
+        for x in range(w):
+            for y in range(h):
+                pos = [x, y]
+                pixel_color = mask_surface.get_at(pos)
+                if pixel_color == color_key:
+                    surface.set_at(pos, new_color)
 
-class RecolorKeys:
-    BODY_COLOR_KEY: Color = Color('blue')
-    EYES_COLOR_KEY: Color = Color('green')
+        return surface
 
-
-def recolor_surface(surface: Surface, color_key: Color,
-                    new_color: Color, mask_surface: str = MASK_IMG_NAME) -> Surface:
-    new_color = normalize_color(new_color)
-    surface = surface.copy()
-    w, h = surface.get_size()
-    mask_surface = load_image(f'cat/{mask_surface}', surface.get_size())
-    for x in range(w):
-        for y in range(h):
-            pos = [x, y]
-            pixel_color = mask_surface.get_at(pos)
-            if pixel_color == color_key:
-                surface.set_at(pos, new_color)
-
-    return surface
+    @classmethod
+    def load_image_cache(cls, path, size=None, smooth_scale=False) -> Surface:
+        key = path, size
+        if key not in cls.CACHE:
+            cls.CACHE[key] = load_image(path=path, size=size, smooth_scale=smooth_scale)
+        return cls.CACHE[key]

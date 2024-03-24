@@ -1,4 +1,5 @@
-import os
+from typing import Union
+from pathlib import Path
 from pygame import Surface, SRCALPHA, font, mask as py_mask
 from pygame import image, error, transform, Color, surface
 from logger import LOGGER
@@ -26,12 +27,12 @@ FONT_25_px = font.SysFont('Arial', 25, bold=True, italic=True)
 FONT_35_px = font.SysFont('Arial', 35, bold=True, italic=True)
 
 
-def load_image(path: str, size: (int, int) = None, smooth_scale=False) -> surface.Surface:
+def load_image(path: Union[str, Path], size: (int, int) = None, smooth_scale=False) -> surface.Surface:
     try:
         if not str(path).startswith('sprites'):
-            path = os.path.join('sprites', path)
+            path = Path('sprites', path)
 
-        sprite = image.load(path)
+        sprite = image.load(str(path))
 
         if size and sprite.get_size() != size:
             size = (int(size[0]), int(size[1]))

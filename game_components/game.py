@@ -16,6 +16,7 @@ from game_components.singletone_decorator import single_tone_decorator
 from game_components.save_functions import *
 from game_components.save_functions import add_1_to_user_death_count
 from game_components.global_data import GlobalData
+from game_components.sprite_builder import SpritesBuilder
 
 GD: GlobalData = GlobalData()
 
@@ -57,7 +58,7 @@ class Game:
                         if character.death_reason:
                             death_reason = character.death_reason
                         self.send_msg(f'@{character.name} пагіб iamvol3Ogo {death_reason}')
-                        add_1_to_user_death_count(character_uid=uid, save_file=SAVE_FILE_NAME)
+                        add_1_to_user_death_count(character_uid=uid, save_file=GD.save_file)
             except Exception as e:
                 LOGGER.error(f'Failed to update {uid}\n{e}')
 
@@ -99,38 +100,38 @@ class Game:
             for uid, char in self.characters.items():
                 save[SaveConst.avatars_data][uid] = get_character_dict(char)
 
-            save_into(data=save, save_file=SAVE_FILE_NAME)
+            save_into(data=save, save_file=GD.save_file)
 
-            LOGGER.info(f'Updated save {SAVE_FILE_NAME}')
+            LOGGER.info(f'Updated save {GD.save_file}')
         except Exception as e:
             LOGGER.error(f'Failed to save {save}, {e}')
         else:
             try:
-                with open(SAVE_FILE_NAME) as f:
+                with open(GD.save_file) as f:
                     data = f.read()
-                with open(SAVE_FILE_BACKUP_NAME, 'w') as f:
+                with open(GD.save_backup_file, 'w') as f:
                     f.write(data)
             except Exception as e:
-                LOGGER.warning(f'Failed to rewrite {SAVE_FILE_BACKUP_NAME} from {SAVE_FILE_NAME} {e}')
+                LOGGER.warning(f'Failed to rewrite {GD.save_backup_file} from {GD.save_file} {e}')
             else:
-                LOGGER.info(f'Rewrote {SAVE_FILE_BACKUP_NAME}')
+                LOGGER.info(f'Rewrote {GD.save_backup_file}')
 
     def load(self):
         save_data = {}
         try:
-            if pathlib.Path(SAVE_FILE_NAME).exists():
-                save_data = load_data(SAVE_FILE_NAME)
-                LOGGER.info(f'Loaded save {SAVE_FILE_NAME}')
+            if pathlib.Path(GD.save_file).exists():
+                save_data = load_data(GD.save_file)
+                LOGGER.info(f'Loaded save {GD.save_file}')
             else:
-                LOGGER.warning(f'Save file {SAVE_FILE_BACKUP_NAME} not found')
+                LOGGER.warning(f'Save file {GD.save_backup_file} not found')
                 raise FileNotFoundError
         except Exception as e:
             LOGGER.warning(e)
-            if pathlib.Path(SAVE_FILE_BACKUP_NAME).exists():
-                save_data = load_data(SAVE_FILE_BACKUP_NAME)
-                LOGGER.info(f'Loaded save {SAVE_FILE_BACKUP_NAME}')
+            if pathlib.Path(GD.save_backup_file).exists():
+                save_data = load_data(GD.save_backup_file)
+                LOGGER.info(f'Loaded save {GD.save_backup_file}')
             else:
-                LOGGER.warning(f'Save file {SAVE_FILE_BACKUP_NAME} not found')
+                LOGGER.warning(f'Save file {GD.save_backup_file} not found')
 
         finally:
             for char_name, char_data in save_data.get(SaveConst.avatars_data, {}).items():
@@ -146,8 +147,10 @@ class Game:
 
     def add_character_ghost(self, character: Character):
         try:
-            self.add_event(CharacterGhost(position=tuple(character.position),
-                                          ghost_surface=character.ghost_surface,
+            ghost_img = SpritesBuilder.get_character_ghost(kind=character.kind,
+                                                           size=character.size)
+            self.add_event(CharacterGhost(position=character.position,
+                                          ghost_surface=ghost_img,
                                           name_surface=character.name_surface))
         except Exception as _:
             LOGGER.error(f'Failed to create ghost for {get_character_dict(character)}')

@@ -8,12 +8,13 @@ from game_components.screen import MAIN_DISPLAY
 from game_components.weapon.base import BaseWeapon
 from game_components.utils import DEFAULT_BACK_FONT
 from game_components.utils import add_outline_to_image
-from game_components.sprite_builder import get_character_body_img, recolor_surface, RecolorKeys, get_character_ghost
+from game_components.sprite_builder import SpritesBuilder
 
 
 # TODO make character ABC
 class Character:
     attrs_const = AttrsCons
+    states_const = StatesConst
 
     def __init__(self, position: PosType,
                  kind: str,
@@ -28,15 +29,16 @@ class Character:
                  horizontal_velocity: float = 0,
                  vertical_velocity: float = 0,
                  make_ghost: bool = True,
-                 ghost_surface: Surface = None,
                  weapon: Optional[BaseWeapon] = None,
                  is_player: bool = True,
+                 state: str = StatesConst.Idle,
                  *_,
                  **__,
                  ):
         self.name: str = name.lower()
         self._draw_name_flag: bool = draw_name
         self.kind: str = kind
+        self.state: str = state
         self.is_player: bool = is_player
 
         self.w_size: int = w_size
@@ -62,7 +64,6 @@ class Character:
 
         self.body_color: Color = Color(body_color) if body_color else body_color
         self.eyes_color: Color = Color(eyes_color) if eyes_color else eyes_color
-        # self.move_anim_deviation: int = random.randrange(-1, 2)
 
         self.surface: Surface = None
         self.name_surface: Surface = None
@@ -71,9 +72,6 @@ class Character:
             self.render_name_surface()
 
         self.make_ghost: bool = make_ghost
-        if ghost_surface is None and make_ghost:
-            ghost_surface = get_character_ghost(kind=self.kind, size=self.size)
-        self.ghost_surface: Surface = ghost_surface
 
         self.alive: bool = True
 
@@ -82,15 +80,19 @@ class Character:
         self.movement_time: float = 0
 
     def render_surface(self):
-        self.surface = get_character_body_img(kind=self.kind, size=self.size)
+        self.surface = SpritesBuilder.get_character_body_img(kind=self.kind, size=self.size, state=self.state)
         if self.body_color:
-            self.surface = recolor_surface(surface=self.surface,
-                                           color_key=RecolorKeys.BODY_COLOR_KEY,
-                                           new_color=self.body_color)
+            self.surface = SpritesBuilder.recolor_surface(surface=self.surface,
+                                                          kind=self.kind,
+                                                          state=self.state,
+                                                          color_key=SpritesBuilder.RecolorKeys.BODY_COLOR_KEY,
+                                                          new_color=self.body_color)
         if self.eyes_color:
-            self.surface = recolor_surface(surface=self.surface,
-                                           color_key=RecolorKeys.EYES_COLOR_KEY,
-                                           new_color=self.eyes_color)
+            self.surface = SpritesBuilder.recolor_surface(surface=self.surface,
+                                                          kind=self.kind,
+                                                          state=self.state,
+                                                          color_key=SpritesBuilder.RecolorKeys.EYES_COLOR_KEY,
+                                                          new_color=self.eyes_color)
 
     def render_name_surface(self):
         name_surface = DEFAULT_BACK_FONT.render(self.name, True, 'white')
@@ -217,7 +219,7 @@ class Character:
         self.look_direction = -1 if direction < 0 else 1
 
     @property
-    def size(self) -> PosType:
+    def size(self) -> SizeType:
         return self.w_size, self.h_size
 
     @property

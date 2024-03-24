@@ -9,11 +9,14 @@ from game_components.AI.go_and_kill import GoAndKill
 
 
 class Zombie(Character):
-    def __init__(self, position: PosType, kind: str = 'cat', name='zombie'):
+    DEFAULT_NAME = 'zombie'
+
+    def __init__(self, position: PosType, kind: str = 'cat', name=DEFAULT_NAME):
         super().__init__(position=position,
                          kind=kind,
                          make_ghost=False, is_player=False,
                          name=name,
+                         draw_name=name != self.DEFAULT_NAME,
                          max_health_points=DEFAULT_HP * 2,
                          speed=MOVE_SPEED * 1.2,
                          body_color=Color(200, 200, 250), eyes_color=Color('red'),
@@ -83,7 +86,7 @@ class ZombieAI(BaseAI):
         return FindTarget(filter_func=lambda target: not isinstance(target, Zombie) and target.alive)
 
 
-def add_zombie(name: str, position: PosType, game_obj, kind: str = 'cat'):
+def add_zombie(position: PosType, game_obj, name: str = Zombie.DEFAULT_NAME, kind: str = 'cat'):
     zombie_id: str = str(uuid1())
     zombie = Zombie(name=name, position=position, kind=kind)
     game_obj.characters[zombie_id] = zombie
