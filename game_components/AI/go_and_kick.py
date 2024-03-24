@@ -8,7 +8,7 @@ class GoAndKick(GoToPerson):
     name = 'go_and_kick'
 
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
-        res = super().tick(character=character, dt=dt, time=time)
+        res = super().tick(character=character, dt=dt, time=time, **kwargs)
         if res == self.STATUS.Done:
             kick_direction = -1 if self.target.x < character.x else 1
             self.target.push(horizontal_velocity=kick_direction * KICK_VELOCITY,

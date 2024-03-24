@@ -24,7 +24,6 @@ from logger import LOGGER
 from _thread import start_new_thread
 
 CONFIG = Config()
-CONFIG.load_config()
 
 APP_ID = os.getenv('TWITCH_APP_ID', CONFIG.creds.app_id)
 APP_SECRET = os.getenv('TWITCH_APP_SECRET', CONFIG.creds.app_secret)

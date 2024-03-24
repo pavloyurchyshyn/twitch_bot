@@ -10,7 +10,7 @@ class GoAndKiss(GoToPerson):
     name = 'go_and_kiss'
 
     def tick(self, character: Character, dt: float, time: float, **kwargs) -> TaskState:
-        res = super().tick(character=character, dt=dt, time=time)
+        res = super().tick(character=character, dt=dt, time=time, **kwargs)
         if res == self.STATUS.Done:
             game_obj = Game()
             game_obj.add_event(FlyingHeart(self.target.position))

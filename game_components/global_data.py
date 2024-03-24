@@ -1,5 +1,5 @@
 import random
-from config import Config
+from config import Config, ABCConfig
 from game_components.singletone_decorator import single_tone_decorator
 from game_components.constants import PosType
 from game_components.screen import scaled_w
@@ -10,7 +10,7 @@ class GlobalData:
     def __init__(self):
         self.time: float = 0
         self.dt: float = 0
-        self.config: Config = Config()
+        self.config: ABCConfig = Config()
 
     def update_time(self, dt: float):
         self.time += dt

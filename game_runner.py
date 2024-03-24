@@ -19,6 +19,7 @@ class RedeemsNames:
 def get_game_obj() -> 'GameRunner':
     from os import environ
     import re
+    import random
 
     environ['VisualPygameOn'] = 'on'
     environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
@@ -166,14 +167,16 @@ def get_game_obj() -> 'GameRunner':
         def process_jump_redeem(self, redeem: RewardRedeemedObj):
             character = self.game.get_character(redeem.user_name)
             if character is not None and not character.is_falling:
-                self.game.get_character(redeem.user_name).vertical_velocity -= JUMP_VELOCITY
+                self.game.get_character(redeem.user_name).push(vertical_velocity=JUMP_VELOCITY,
+                                                               rotation_speed=random.randint(-5, 5))
 
         def process_everybody_jump(self, redeem: RewardRedeemedObj):
             for character in self.game.characters.copy().values():
                 if character.name == redeem.user_name:
                     continue
                 elif not character.is_falling:
-                    character.vertical_velocity -= JUMP_VELOCITY
+                    character.push(vertical_velocity=JUMP_VELOCITY, horizontal_velocity=random.randint(-10, 10),
+                                   rotation_speed=random.randint(-10, 10))
 
         def set_direction(self, redeem: RewardRedeemedObj):
             if self.game.check_if_any_event_is_blocking():

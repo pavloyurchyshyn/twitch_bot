@@ -134,8 +134,6 @@ class Character:
 
         MAIN_DISPLAY.blit(surface, position)
 
-        # draw.rect(MAIN_DISPLAY, 'red', )
-
         if self._draw_name_flag:
             self.draw_name(dy)
         self.draw_hp_bar(dy)
@@ -147,9 +145,9 @@ class Character:
         MAIN_DISPLAY.blit(self.name_surface, name_pos)
 
     def get_name_position(self, dy: float = 0) -> Tuple[float, float]:
-        center = self.rect.midtop
-        x = center[0] - self.name_surface.get_width() // 2
-        y = center[1] - self.name_surface.get_height() + dy
+        x_0, y_0 = self.rect.midtop
+        x = x_0 - self.name_surface.get_width() // 2
+        y = y_0 - self.name_surface.get_height() + dy
         return x, y
 
     def draw_hp_bar(self, dy: int):
@@ -180,8 +178,6 @@ class Character:
             elif not self.is_falling:
                 self.horizontal_velocity = self.move_direction * self.speed
                 self.movement_time += dt
-                # if self.movement_time > 1000:  # TODO check
-                #     self.movement_time = 0
 
             dx = self.horizontal_velocity * dt
             self._position[0] += self.horizontal_velocity * dt

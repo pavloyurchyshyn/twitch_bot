@@ -1,7 +1,6 @@
 import os
-
 import yaml
-
+from typing import Tuple
 from logger import LOGGER
 from game_components.singletone_decorator import single_tone_decorator
 
@@ -20,17 +19,23 @@ class BaseConfig(dict):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        if self.file:
+            self.load_config()
 
     def load_config(self):
         for k, v in load_yaml_config(self.file).items():
             self.set_value(k, v)
+
+    def save(self):
+        with open(self.file, 'w') as f:
+            yaml.safe_dump(self, f)
 
     def set_value(self, k: str, v: str):
         self[k] = self.init_value(v)
 
     def init_value(self, value):
         if isinstance(value, dict):
-            return self.__class__(**self.init_dict(value))
+            return BaseConfig(**self.init_dict(value))
         elif isinstance(value, list):
             return [self.init_value(v) for v in value]
         else:
