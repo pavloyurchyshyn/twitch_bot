@@ -47,7 +47,7 @@ class TitleEvent(BaseEvent):
             self.render_text()
         if self.event_to_follow:
             self.is_done = self.event_to_follow.is_done
-        if self.time is not None:
+        elif self.time is not None:
             self.is_done = self.time < self.global_data.time
 
     def draw(self) -> None:
