@@ -1,7 +1,7 @@
 from typing import Union
 from pathlib import Path
 from pygame import Surface, SRCALPHA, font, mask as py_mask
-from pygame import image, error, transform, Color, surface
+from pygame import image, error, transform, Color, surface, draw
 from logger import LOGGER
 from game_components.screen import scaled_w
 
@@ -78,3 +78,13 @@ def add_outline_to_image(image: Surface, border_color: tuple = (0, 0, 0)) -> Sur
 def get_text_with_outline(text: str, color='white', font_: font.Font = DEFAULT_FONT,
                           border_color: tuple = (0, 0, 0)) -> Surface:
     return add_outline_to_image(font_.render(text, 0, color), border_color=border_color)
+
+
+def get_progress_bar(current: int, max_value: int, h_size: int, v_size: int,
+                     border_color: Color, color: Color) -> Surface:
+    s = get_surface(h_size=h_size, v_size=v_size, transparent=1)
+    draw.rect(s, border_color, [[0, 0], [h_size, v_size]], 0, 2)
+    inner_w = (h_size - 2) * max_value / current
+    draw.rect(s, color, [[1, 1], [inner_w, v_size - 2]], 0, 2)
+
+    return s
