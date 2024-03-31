@@ -14,11 +14,15 @@ class BaseEvent:
     name: str
 
     global_data: GlobalData = GlobalData()
+    process_user_spawn: bool = False
 
     def __init__(self, characters_dict: Dict[str, Character], characters_ai: Dict[str, AI]):
         self.characters_dict: Dict[str, Character] = characters_dict
         self.characters_ai: Dict[str, AI] = characters_ai
         self.is_done: bool = False
+
+    def process_new_user(self, character: Character):
+        pass
 
     @property
     def characters(self) -> List[Character]:

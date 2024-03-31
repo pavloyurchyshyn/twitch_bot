@@ -20,6 +20,7 @@ RIGHT_BORDER = scaled_w(0.99)
 class ZombieEvent(BaseEvent, EventPredictionMixin):
     name = 'zombies_event'
     is_blocking = True
+    process_user_spawn = True
 
     class Const:
         Users = 'Люди'
@@ -32,6 +33,7 @@ class ZombieEvent(BaseEvent, EventPredictionMixin):
                  update_prediction: Callable):
         super().__init__(characters_dict=characters_dict, characters_ai=characters_ai)
         EventPredictionMixin.__init__(self, update_method=update_prediction)
+        self.fight_stage: bool = False
         self.prediction_time = self.global_data.time + self.Const.time_to_predict
         self.time_to_fight = self.prediction_time + self.Const.time_to_fight
         self.update_method: Callable = self.wait_time
@@ -41,6 +43,7 @@ class ZombieEvent(BaseEvent, EventPredictionMixin):
 
     def wait_time(self):
         if self.global_data.time > self.prediction_time:
+            self.fight_stage = True
             self.update_method = self.fight_time
             self.lock_prediction()
 
@@ -60,6 +63,13 @@ class ZombieEvent(BaseEvent, EventPredictionMixin):
             game_obj.add_event(TitleEvent(text='Survive for', event_to_follow=self,
                                           timeout=self.Const.time_to_fight, draw_time=True))
             LOGGER.info('Started zombies fight')
+
+    def process_new_user(self, character: Character):
+        if self.fight_stage:
+            ai = self.characters_ai.get(character.name)
+            if ai:
+                ai.clear()
+                ai.add_task(DefendFromZombies())
 
     def fight_time(self):
         any_not_zombie = False

@@ -138,6 +138,9 @@ def get_game_obj() -> 'GameRunner':
             user_name = redeem.user_name
             if user_name not in self.game.characters:
                 self.game.add_character(user_name)
+                for event in self.game.events:
+                    if event.process_user_spawn:
+                        event.process_new_user(character=self.game.get_character(user_name))
 
         def process_eyes_recolor_redeem(self, redeem: RewardRedeemedObj):
             self.process_recolor_redeem(redeem, AttrsCons.eyes_color.value)
@@ -301,12 +304,15 @@ def get_game_obj() -> 'GameRunner':
 
 
 if __name__ == '__main__':
+    import os
+    os.environ['DEBUG'] = 'True'
+
     g = get_game_obj()
-    g.game.add_character('Dummy')
+    for i in range(10):
+        g.game.add_character(f'Dummy{i}')
     g.game.load()
     try:
         g.game.start_zombies_event()
         g.run()
     finally:
         pass
-        # g.game.save()
