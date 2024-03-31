@@ -1,3 +1,4 @@
+import pathlib
 import yaml
 from game_components.constants import AttrsCons
 from game_components.character.user_character import Character
@@ -39,6 +40,8 @@ def save_into(data, save_file=None):
 
 def load_data(save_file=None) -> dict:
     save_file = GD.save_file if save_file is None else save_file
+    if not pathlib.Path(save_file).exists():
+        return {}
     with open(save_file) as f:
         return yaml.safe_load(f)
 
