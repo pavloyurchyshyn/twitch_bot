@@ -1,3 +1,4 @@
+import os
 import random
 from config import Config
 from game_components.singletone_decorator import single_tone_decorator
@@ -7,6 +8,8 @@ from game_components.screen import scaled_w
 
 @single_tone_decorator
 class GlobalData:
+    debug: bool = os.getenv('DEBUG', '')
+
     def __init__(self):
         self.time: float = 0
         self.dt: float = 0
@@ -24,11 +27,17 @@ class GlobalData:
 
     @property
     def save_file(self) -> str:
-        return self.config.get('save_file', 'save.yaml')
+        if self.debug:
+            return 'debug_save.yaml'
+        else:
+            return self.config.get('save_file', 'save.yaml')
 
     @property
     def save_backup_file(self) -> str:
-        return self.config.get('save_file', 'save_backup.yaml')
+        if self.debug:
+            return 'debug_save.yaml'
+        else:
+            return self.config.get('save_file', 'save_backup.yaml')
 
     @property
     def character_size(self) -> const.SizeType:
@@ -54,5 +63,10 @@ class GlobalData:
     def character_move_speed(self) -> float:
         return self.character_config.get('move_speed', const.MOVE_SPEED)
 
+    @property
+    def characters_config(self) -> dict:
+        return self.character_config.get('characters', {})
+
 
 GD = GlobalData()
+
