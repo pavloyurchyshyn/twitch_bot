@@ -26,8 +26,14 @@ KICK_SOUND = '8bit_kick.mp3'
 KISS_SOUND = 'kiss.mp3'
 
 
+class ClothesConst:
+    size_template = '{}_size'
+    position_template = '{}_position'
+
+
 class AttrsCons(enum.Enum):
     name = 'name'
+    size = 'size'
     w_size = 'w_size'
     h_size = 'h_size'
     position = 'position'
@@ -41,9 +47,14 @@ class AttrsCons(enum.Enum):
     kind = 'kind'
     max_health_points = 'max_health_points'
 
+    hat = 'hat'
+    glasses = 'glasses'
+    moustache = 'moustache'
+
     @classmethod
     def get_person_const(cls) -> tuple:
-        return cls.w_size, cls.h_size, cls.max_health_points, cls.kind, cls.speed, cls.body_color, cls.eyes_color
+        return cls.position, cls.w_size, cls.h_size, cls.max_health_points, cls.kind, cls.speed, \
+            cls.body_color, cls.eyes_color, cls.name
 
 
 class StatesConst:

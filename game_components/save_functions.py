@@ -7,7 +7,7 @@ from logger import LOGGER
 from copy import deepcopy
 
 __all__ = ['SaveConst', 'save_into', 'load_data',
-           'get_save_template', 'get_character_dict', 'get_character_dict', 'get_character_person_dict',
+           'get_save_template', 'get_character_dict', 'get_character_dict',
            'save_character_attr', 'get_character_person_attrs']
 
 
@@ -51,7 +51,7 @@ def get_save_template() -> dict:
 
 
 def get_character_dict(character: Character) -> dict:
-    attrs_const = character.attrs_const
+    attrs_const = character.attrs_const.get_person_const()
     data = {attr_name.value: getattr(character, attr_name.value) for attr_name in attrs_const}
 
     data[AttrsCons.position.value] = tuple(data[AttrsCons.position.value])
@@ -59,15 +59,9 @@ def get_character_dict(character: Character) -> dict:
         data[AttrsCons.body_color.value] = tuple(data[AttrsCons.body_color.value])
     if data.get(AttrsCons.eyes_color.value):
         data[AttrsCons.eyes_color.value] = tuple(data[AttrsCons.eyes_color.value])
-    return data
 
-
-def get_character_person_dict(character) -> dict:
-    data = {attr_name.value: getattr(character, attr_name.value) for attr_name in character.person_attrs_const}
-    if data.get(AttrsCons.body_color.value):
-        data[AttrsCons.body_color.value] = tuple(data[AttrsCons.body_color.value])
-    if data.get(AttrsCons.eyes_color.value):
-        data[AttrsCons.eyes_color.value] = tuple(data[AttrsCons.eyes_color.value])
+    data[AttrsCons.hat.value] = character.visual_part.hat.name if character.visual_part.hat else None
+    data[AttrsCons.glasses.value] = character.visual_part.glasses.name if character.visual_part.glasses else None
     return data
 
 

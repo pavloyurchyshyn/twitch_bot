@@ -2,6 +2,7 @@ from pathlib import Path
 from pygame import Surface, Color
 
 from game_components.utils import load_image, normalize_color
+from game_components.constants import SizeType
 
 BODY_IMG_NAME: str = 'sprite.png'
 MASK_IMG_NAME: str = 'mask.png'
@@ -51,3 +52,7 @@ class SpritesBuilder:
         if key not in cls.CACHE:
             cls.CACHE[key] = load_image(path=path, size=size, smooth_scale=smooth_scale)
         return cls.CACHE[key]
+
+    @classmethod
+    def get_clothe_surface(cls, name: str, size: SizeType = None) -> Surface:
+        return cls.load_image_cache(path=Path('clothes', name), size=size)

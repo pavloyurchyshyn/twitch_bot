@@ -11,6 +11,8 @@ class RedeemsNames:
     kick_person = "штовхнути"
     start_duel = "почати дуель"
     zombie_attack = 'зомбі'
+    wear_a_hat = 'вдягнути шапку'
+    wear_a_glasses = 'вдягнути окуляри'
     commands_to_ignore = [
         "замовити музику",
     ]
@@ -46,7 +48,9 @@ def get_game_obj() -> 'GameRunner':
     from redeems import RewardRedeemedObj
     from game_components.screen import MAIN_DISPLAY
     from game_components.game import Game
-    from game_components.character.user_character import Character, JUMP_VELOCITY, AttrsCons
+    from game_components.character.user_character import Character
+    from game_components.character.visual.base import CharVisualError
+    from game_components.constants import JUMP_VELOCITY, AttrsCons
     from game_components.AI import base
     from game_components.AI.go_and_kiss import GoAndKiss
     from game_components.AI.go_and_kick import GoAndKick
@@ -79,6 +83,8 @@ def get_game_obj() -> 'GameRunner':
                 RedeemsNames.kick_person: self.process_kick_person,
                 RedeemsNames.start_duel: self.process_start_duel,
                 RedeemsNames.zombie_attack: self.process_zombie_attack,
+                RedeemsNames.wear_a_hat: self.process_wear_a_hat,
+                RedeemsNames.wear_a_glasses: self.process_wear_a_glasses,
             }
 
         def run(self):
@@ -165,7 +171,7 @@ def get_game_obj() -> 'GameRunner':
                 if character := self.game.get_character(redeem.user_name):
                     save_character_attr(redeem.user_name, attr=attr, value=tuple(color))
                     setattr(character, attr, color)
-                    character.render_surface()
+                    character.visual_part.render_surface()
 
         def process_jump_redeem(self, redeem: RewardRedeemedObj):
             character = self.game.get_character(redeem.user_name)
@@ -253,6 +259,42 @@ def get_game_obj() -> 'GameRunner':
                 raise RedeemError('немає кому битись проти зомбі')
             self.game.start_zombies_event()
 
+        def process_wear_a_hat(self, redeem: RewardRedeemedObj):
+            self.validate_user_character_exists(name=redeem.user_name)
+            character: Character = self.game.get_character(redeem.user_name)
+            if redeem.input == '0':
+                character.visual_part.hat = None
+                character.visual_part.hat_name = None
+            else:
+                hat_obj = character.visual_part.hat
+                prev_name = character.visual_part.hat_name
+                character.visual_part.hat_name = 'cylinder_hat'
+                try:
+                    character.visual_part.render_hat()
+                except CharVisualError as e:
+                    LOGGER.error(str(e))
+                    character.visual_part.hat = hat_obj
+                    character.visual_part.hat_name = prev_name
+                    raise RedeemError
+
+        def process_wear_a_glasses(self, redeem: RewardRedeemedObj):
+            self.validate_user_character_exists(name=redeem.user_name)
+            character: Character = self.game.get_character(redeem.user_name)
+            if redeem.input == '0':
+                character.visual_part.glasses = None
+                character.visual_part.glasses_name = None
+            else:
+                glasses_obj = character.visual_part.glasses
+                prev_name = character.visual_part.glasses_name
+                character.visual_part.glasses_name = 'glasses'
+                try:
+                    character.visual_part.render_glasses()
+                except CharVisualError as e:
+                    LOGGER.error(str(e))
+                    character.visual_part.glasses = glasses_obj
+                    character.visual_part.glasses_name = prev_name
+                    raise RedeemError
+
         def process_start_duel(self, redeem: RewardRedeemedObj):
             target_name: str = redeem.normalize_nickname(str(redeem.input))
             user_name: str = str(redeem.user_name)
@@ -305,10 +347,11 @@ def get_game_obj() -> 'GameRunner':
 
 if __name__ == '__main__':
     import os
+
     os.environ['DEBUG'] = 'True'
 
     g = get_game_obj()
-    for i in range(10):
+    for i in range(1):
         g.game.add_character(f'Dummy{i}')
     g.game.load()
     try:

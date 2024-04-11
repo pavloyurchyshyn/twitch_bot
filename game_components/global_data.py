@@ -1,19 +1,22 @@
+import logging
 import os
 import random
-from config import Config
+from config import Config, BaseConfig
 from game_components.singletone_decorator import single_tone_decorator
 from game_components import constants as const
 from game_components.screen import scaled_w
+from logger import LOGGER
 
 
 @single_tone_decorator
 class GlobalData:
     debug: bool = os.getenv('DEBUG', '')
+    logger: logging.Logger = LOGGER
 
     def __init__(self):
         self.time: float = 0
         self.dt: float = 0
-        self.config: Config = Config()
+        self.config: BaseConfig = Config()
 
     def update_time(self, dt: float):
         self.time += dt
@@ -41,7 +44,7 @@ class GlobalData:
 
     @property
     def character_size(self) -> const.SizeType:
-        return self.config.get('character', {}).get('size', (const.CHAR_SIZE, const.CHAR_SIZE))
+        return self.character_config.get(const.AttrsCons.size, (const.CHAR_SIZE, const.CHAR_SIZE))
 
     @property
     def character_width(self) -> int:
@@ -57,7 +60,7 @@ class GlobalData:
 
     @property
     def character_max_hp(self) -> float:
-        return self.character_config.get('max_hp', const.DEFAULT_HP)
+        return self.character_config.get(const.AttrsCons.max_health_points, const.DEFAULT_HP)
 
     @property
     def character_move_speed(self) -> float:
@@ -65,8 +68,11 @@ class GlobalData:
 
     @property
     def characters_config(self) -> dict:
-        return self.character_config.get('characters', {})
+        c = self.config.raw
+        char = c.get('character', {})
+        chars = char.get('characters', {})
+        return chars
+        # return character_config['characters']
 
 
 GD = GlobalData()
-

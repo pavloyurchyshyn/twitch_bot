@@ -18,11 +18,14 @@ class BaseConfig(dict):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.raw = {}
         if self.file:
             self.load_config()
 
     def load_config(self):
-        for k, v in load_yaml_config(self.file).items():
+        config_data = load_yaml_config(self.file)
+        self.raw = config_data
+        for k, v in config_data.items():
             self.set_value(k, v)
 
     def save(self):
@@ -44,7 +47,10 @@ class BaseConfig(dict):
         sub_config = {}
         for k, v in data.items():
             if isinstance(v, dict):
-                sub_config[k] = {k_: self.init_value(v_) for k_, v_ in data.items()}
+                c_ = {}
+                for k_, v_ in data.items():
+                    c_[k_] = self.init_value(v_)
+                sub_config[k] = BaseConfig(**c_)
             else:
                 sub_config[k] = self.init_value(v)
 
@@ -60,3 +66,8 @@ class BaseConfig(dict):
 @single_tone_decorator
 class Config(BaseConfig):
     file: str = CONFIG_PATH
+
+
+if __name__ == '__main__':
+    config = Config()
+    pass

@@ -257,9 +257,10 @@ class FunBot:
         except RedeemError as e:
             text = f'@{redeem_obj.user_name}, не вийшло застосувати "{redeem_obj.name}", бо {e}'
             LOGGER.warning(text)
-            await self.chat.send_message(TARGET_CHANNEL, text)
+            if e.msg:
+                await self.chat.send_message(TARGET_CHANNEL, text)
         except Exception as e:
-            LOGGER.warning(e)
+            LOGGER.error(e)
         else:
             fulfilled = True
 

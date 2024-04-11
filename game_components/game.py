@@ -3,6 +3,7 @@ from typing import Dict, Optional, List, Callable
 
 from logger import LOGGER
 from game_components.AI.base import AI, IdleWalk
+from game_components.global_data import GD
 from game_components.character.user_character import Character
 from game_components.character.fabric import get_character
 
@@ -15,10 +16,7 @@ from game_components.events.title import TitleEvent
 from game_components.singletone_decorator import single_tone_decorator
 from game_components.save_functions import *
 from game_components.save_functions import add_1_to_user_death_count
-from game_components.global_data import GlobalData
 from game_components.sprite_builder import SpritesBuilder
-
-GD: GlobalData = GlobalData()
 
 
 @single_tone_decorator
@@ -136,11 +134,14 @@ class Game:
         finally:
             for char_name, char_data in save_data.get(SaveConst.avatars_data, {}).items():
                 char_name: str = char_name.strip().lower()
-                character: Character = get_character(**char_data)
-                self.characters[char_name] = character
-                self.add_ai_for(char_name, character=character)
-                if character.move_direction:
-                    self.get_character_ai(char_name).add_task(IdleWalk())
+                try:
+                    character: Character = get_character(**char_data)
+                    self.characters[char_name] = character
+                    self.add_ai_for(char_name, character=character)
+                    if character.move_direction:
+                        self.get_character_ai(char_name).add_task(IdleWalk())
+                except Exception as e:
+                    LOGGER.error(f'Failed to create {char_name}: {e}')
 
     def make_storm(self):
         self.add_event(StormEvent(self.characters))
@@ -151,9 +152,9 @@ class Game:
                                                            size=character.size)
             self.add_event(CharacterGhost(position=character.position,
                                           ghost_surface=ghost_img,
-                                          name_surface=character.name_surface))
-        except Exception as _:
-            LOGGER.error(f'Failed to create ghost for {get_character_dict(character)}')
+                                          name_surface=character.visual_part.name_surface))
+        except Exception as e:
+            LOGGER.error(f'Failed to create ghost for {character.name}, reason {e}')
 
     def add_event(self, event: BaseEvent):
         self.events.append(event)
